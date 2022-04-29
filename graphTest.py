@@ -50,18 +50,18 @@ def plotValues(Kp,T,theta,TLead,TLag,MVPath,TSim,Ts):
 fig, ax = plt.subplots()
 t,path,y = plotValues(Kp,T,theta,TLead,TLag,MVPath,TSim,Ts)
 line, = plt.plot(t,y, lw=2,label='LeadLag Responce (EDB)')
-plt.plot(t,path)
+default, = plt.plot(t,path)
 ax.set_xlabel('Time [s]')
 
 
 # adjust the main plot to make room for the sliders
-plt.subplots_adjust(left=0.25, bottom=0.3)
+plt.subplots_adjust(left=0.15, bottom=0.3)
 
 # Make a horizontal slider to control the frequency.
-axKp = plt.axes([0.1, 0.25, 0.0225, 0.63])
-axTlead = plt.axes([0.25, 0.05, 0.5, 0.03])
-axTLag = plt.axes([0.25, 0.1, 0.5, 0.03])
-axtheta = plt.axes([0.25, 0.15, 0.5, 0.03])
+axKp = plt.axes([0.05, 0.25, 0.0225, 0.63])
+axTlead = plt.axes([0.15, 0.05, 0.5, 0.03])
+axTLag = plt.axes([0.15, 0.1, 0.5, 0.03])
+axtheta = plt.axes([0.15, 0.15, 0.5, 0.03])
 
 Kp_slider = Slider(ax=axKp,label='Kp',valmin=0,valmax=10,valinit=Kp,orientation="vertical")
 TLead_slider = Slider(ax=axTlead,label='TLead',valmin=0.1,valmax=10,valinit=TLead)
@@ -73,7 +73,7 @@ def update(val):
     t,path,y = plotValues(Kp_slider.val,T,theta_slider.val,TLead_slider.val,TLag_slider.val,MVPath,TSim,Ts)
     line.set_ydata(y)
     fig.canvas.draw_idle()
-    ax.set_ylim(0,max(y))
+    ax.set_ylim(0,max(max(y),max(path))+0.1)
 
 # register the update function with each slider
 Kp_slider.on_changed(update)
@@ -91,5 +91,9 @@ def reset(event):
     TLag_slider.reset()
     theta_slider.reset()
 button.on_clicked(reset)
+
+#Full screen
+#manager = plt.get_current_fig_manager()
+#manager.full_screen_toggle()
 
 plt.show()
