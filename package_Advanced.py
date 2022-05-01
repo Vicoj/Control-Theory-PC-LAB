@@ -10,8 +10,6 @@ from package_DBR import *
 def LeadLag_RT(MV,Kp,TLead,TLag,Ts,PV,PVInit=0,method='EDB'):
     
     """
-    The function "FOPDT" DOES NOT need to be included in a "for or while loop": this block is for offline use.
-    
     :MV: input vector
     :Kp: process gain
     :TLead: lead time Constant [s]
@@ -47,6 +45,40 @@ def LeadLag_RT(MV,Kp,TLead,TLag,Ts,PV,PVInit=0,method='EDB'):
         PV.append(Kp*MV[-1])
 
 def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVp, MVi, MVd, E, ManFF=False, PVInit=0, method='EBD-EBD'):
+    """
+    :SP: Set Point vector
+    :PV: Process Value vector
+    :Man: Manual control vector (T/F)
+    :MVMan: Man value vector
+    :MVFF: Feed Forward vector
+
+    :Kc: controller gain
+    :Ti: integral time costant [s]
+    :Td: derivative time costant [s]
+    :alpha: Tdf = alpha*Td :Tdf: derivative filter time constant
+    :Ts: Sampling period [s]
+
+
+    :MV: Manipulated value vector
+    :MVP: Proportionnal part vector
+    :MVI: Integral part vector
+    :MVD: Derivative part vector
+    :E: Control Error vector
+
+    :ManFF: Activated FF (T/F)
+    :Pvinit: Initial Value PV
+
+
+    :method: discretisation method (optional: default value is 'EBD')
+        EBD-EDB: EDB for integral and EDB for derivative action
+        EBD-TRAP: EDB for integral and TRAP for derivative action
+        TRAP-EDB: TRAP for integral and EDB for derivative action
+        TRAP-TRAP: TRAP for integral and TRAP for derivative action
+        
+        
+    This function apends new values to the output vector "MV", "MVP", "MVI", "MVD".
+     """
+
     if(len(PV)==0):
         E.append(SP[-1]-PVInit)
     else :
@@ -69,7 +101,6 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MV
                 MVd.append(( Tfd / (Tfd+Ts) )*MVd[-1] + ( (Kc*Td) / (Tfd+Ts) ) *(E[-1]-E[-2]))
         else : MVd.append(0)
   
-
     MV.append(MVp[-1]+MVi[-1]+MVd[-1])
     
     return None
