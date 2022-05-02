@@ -15,7 +15,7 @@ Ts = 0.1 # Temps du samling
 N = int(TSim/Ts) + 1 # nombres de samples 
 
 # Path for MV
-MVPath = {0: 0, 5: 40, 280:0, TSim: 45} # Chemin choisis
+MVPath = {0: 30, 5: 70, 280:30, TSim: 75} # Chemin choisis
 
 # FO Parametrers
 #Final SSE Objective: 0.03787173811807361
@@ -39,7 +39,7 @@ def plotValues(Kp,T,theta,MVPath,TSim,Ts):
         t.append(i*Ts)
         SelectPath_RT(MVPath,t,MV)
         Delay_RT(MV,theta,Ts,MVDelay) 
-        FO_RT(MVDelay,Kp,T,Ts,PV_FO,PVInit=0,method='EBD')
+        FO_RT(MVDelay,Kp,T,Ts,PV_FO,PVInit=30,method='EBD')
     
     return t,MV,PV_FO
 
