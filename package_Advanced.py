@@ -44,7 +44,8 @@ def LeadLag_RT(MV,Kp,TLead,TLag,Ts,PV,PVInit=0,method='EDB'):
     else:
         PV.append(Kp*MV[-1])
 
-def PID_RT(MV, SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID, MVP, MVI, MVD, E, ManFF=False, PVInit=0, method='EBD-EBD'):
+def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID, MVP, MVI, MVD, E, ManFF=False, PVInit=0, method='EBD-EBD'):
+
     """
     :SP: Set Point vector
     :PV: Process Value vector
@@ -106,6 +107,6 @@ def PID_RT(MV, SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV
                 MVD.append(( Tfd / (Tfd+Ts) )*MVD[-1] + ( (Kc*Td) / (Tfd+Ts) ) *(E[-1]-E[-2]))
         else : MVD.append(0)
 
-    MVPID.append(MV[-1]+MVP[-1])#+MVI[-1]+MVD[-1]
+    MVPID.append(MVP[-1]+MVI[-1]+MVD[-1])
     
     return None

@@ -15,7 +15,7 @@ Ts = 0.1 # Temps du samling
 N = int(TSim/Ts) + 1 # nombres de samples 
 
 # Path for MV
-MVPath = {0: 30, 5: 70, 280:30, TSim: 75} # Chemin choisis
+MVPath = {0: 0, 5: 40, 280:0, TSim: 45} # Chemin choisis
 
 # FO Parametrers
 #Final SSE Objective: 0.03787173811807361

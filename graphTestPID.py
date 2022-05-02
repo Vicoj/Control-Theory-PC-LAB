@@ -5,91 +5,121 @@ from matplotlib import colors as mcolors
 from matplotlib.widgets import Slider, Button, RadioButtons
 
 import package_DBR
-from package_DBR import myRound, SelectPath_RT, Delay_RT, FO_RT, FOPDT, SOPDT, FOPDT_cost, SOPDT_cost, Process, Bode
+from package_DBR import *
 
 import package_Advanced
-from package_Advanced import LeadLag_RT , PID_RT
+from package_Advanced import *
 
-TSim = 100 #Temps de la simulation
+TSim = 60 #Temps de la simulation
 Ts = 0.1 # Temps du samling
 N = int(TSim/Ts) + 1 # nombres de samples 
 
 # Path for MV
-MVPath = {0: 0, 5: 1, 50: 2, 80: 3, TSim: 3} # Chemin choisis
+MVPath = {0: 0, 5: 40, 20:0, TSim: 45} # Chemin choisis
 
-# Define initial parameters
-Kp = 1
-T = 5
-theta = 0
-TLead = 1
-TLag = 5
+# FO Parametrers
+#Final SSE Objective: 0.03787173811807361
+Kp = 0.654997667761135
+T = 141.9367358894029
+theta = 6.678212203596281
+PV = []
 
-def plotValues(Kp,T,theta,TLead,TLag,MVPath,TSim,Ts):
+# PID Parametrers
+
+Man = 0
+MVMan = []
+MVFF = []
+
+Kc = 0.1
+Ti = 1
+Td = 1
+alpha = 1
+
+MVMin = -100
+MVMax = 100
+
+MV = []
+MVP = []
+MVI = []
+MVD = []
+E = []
+
+ManFF = 0
+PVInit = 0
+
+def plotValues(Kp,T,theta,Kc,Ti,Td,alpha,MVPath,TSim,Ts):
     
     N = int(TSim/Ts) + 1 # nombres de samples 
 
     # Variables a rempir
     t = []
-    MV = []
+    MVPID = []
     MVDelay = []
-    PV_EBD = []
-    PV_EFD = []
-    PV_TRAP = []
+    SP_FO = []
+    PV = []
+    MVP = []
+    MVI = []
+    MVD = []
+    E = []
+
 
     for i in range(0,N):
         t.append(i*Ts)
-        SelectPath_RT(MVPath,t,MV)
-        Delay_RT(MV,theta,Ts,MVDelay) 
-        LeadLag_RT(MVDelay,Kp,TLead,TLag,Ts,PV_EBD,PVInit=0,method='EDB')
+        SelectPath_RT(MVPath,t,PV)
+        FO_RT(PV,Kp,T,Ts,SP_FO,PVInit=0,method='EBD')
+        PID_RT(PV, SP_FO, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID, MVP, MVI, MVD, E, ManFF=False, PVInit=0, method='EBD-EBD')
     
-    return t,MV,PV_EBD
+    return t,PV,MVPID
 
 
 
 # Create the figure and the line that we will manipulate
 fig, ax = plt.subplots()
-t,path,y = plotValues(Kp,T,theta,TLead,TLag,MVPath,TSim,Ts)
-line, = plt.plot(t,y, lw=2,label='LeadLag Responce (EDB)')
-default, = plt.plot(t,path)
+t,PV,MVPID = plotValues(Kp,T,theta,Kc,Ti,Td,alpha,MVPath,TSim,Ts)
+PID, = plt.plot(t,MVPID, lw=2,label='PID Control (EDB)')
+default, = plt.plot(t,PV)
+
 ax.set_xlabel('Time [s]')
 
 
 # adjust the main plot to make room for the sliders
-plt.subplots_adjust(left=0.15, bottom=0.3)
+plt.subplots_adjust(left=0.1, bottom=0.3)
 
-# Make a horizontal slider to control the frequency.
-axKp = plt.axes([0.05, 0.25, 0.0225, 0.63])
-axTlead = plt.axes([0.15, 0.05, 0.5, 0.03])
-axTLag = plt.axes([0.15, 0.1, 0.5, 0.03])
-axtheta = plt.axes([0.15, 0.15, 0.5, 0.03])
+###### Make a horizontal slider to control the Param #####
+axKc = plt.axes([0.15, 0.05, 0.5, 0.03])
+axTi = plt.axes([0.15, 0.1, 0.5, 0.03])
+axTd = plt.axes([0.15, 0.15, 0.5, 0.03])
+axalpha = plt.axes([0.15, 0.2, 0.5, 0.03])
 
-Kp_slider = Slider(ax=axKp,label='Kp',valmin=0,valmax=10,valinit=Kp,orientation="vertical")
-TLead_slider = Slider(ax=axTlead,label='TLead',valmin=0.1,valmax=10,valinit=TLead)
-TLag_slider = Slider(ax=axTLag,label='TLag',valmin=0.1,valmax=10,valinit=TLag)
-theta_slider = Slider(ax=axtheta,label='theta',valmin=0,valmax=10,valinit=theta)
+
+Kc_slider = Slider(ax=axKc,label='Kc',valmin=0.1,valmax=2,valinit=Kc)
+Ti_slider = Slider(ax=axTi,label='Ti',valmin=0.1,valmax=2,valinit=Ti)
+Td_slider = Slider(ax=axTd,label='Td',valmin=0.1,valmax=2,valinit=Td)
+alpha_slider = Slider(ax=axalpha,label='alpha',valmin=0,valmax=2,valinit=alpha)
+
 
 # The function to be called anytime a slider's value changes
 def update(val):
-    t,path,y = plotValues(Kp_slider.val,T,theta_slider.val,TLead_slider.val,TLag_slider.val,MVPath,TSim,Ts)
-    line.set_ydata(y)
+    t,PV,MVPID = plotValues(Kp,T,theta,Kc_slider.val,Ti_slider.val,Td_slider.val,alpha_slider.val,MVPath,TSim,Ts)
+    PID.set_ydata(MVPID)
     fig.canvas.draw_idle()
-    ax.set_ylim(0,max(max(y),max(path))+0.1)
+    ax.set_ylim(0,max(max(PV),max(MVPID))+0.1)
 
 # register the update function with each slider
-Kp_slider.on_changed(update)
-TLead_slider.on_changed(update)
-TLag_slider.on_changed(update)
-theta_slider.on_changed(update)
+Kc_slider.on_changed(update)
+Ti_slider.on_changed(update)
+Td_slider.on_changed(update)
+alpha_slider.on_changed(update)
 
 # Create a `matplotlib.widgets.Button` to reset the sliders to initial values.
 resetax = plt.axes([0.8, 0.025, 0.1, 0.04])
 button = Button(resetax, 'Reset', hovercolor='0.975')
 
 def reset(event):
-    Kp_slider.reset()
-    TLead_slider.reset()
-    TLag_slider.reset()
-    theta_slider.reset()
+    Kc_slider.reset()
+    Ti_slider.reset()
+    Td_slider.reset()
+    alpha_slider.reset()
 button.on_clicked(reset)
 
 #Full screen
