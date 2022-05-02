@@ -44,7 +44,7 @@ def LeadLag_RT(MV,Kp,TLead,TLag,Ts,PV,PVInit=0,method='EDB'):
     else:
         PV.append(Kp*MV[-1])
 
-def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVp, MVi, MVd, E, ManFF=False, PVInit=0, method='EBD-EBD'):
+def PID_RT(MV, SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID, MVP, MVI, MVD, E, ManFF=False, PVInit=0, method='EBD-EBD'):
     """
     :SP: Set Point vector
     :PV: Process Value vector
@@ -79,28 +79,33 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MV
     This function apends new values to the output vector "MV", "MVP", "MVI", "MVD".
      """
 
+    #Initialisation de E
     if(len(PV)==0):
         E.append(SP[-1]-PVInit)
     else :
         E.append(SP[-1]-PV[-1])
     
-    MVp.append(Kc*E[-1])
-    
-    if(len(MVi)>0):
-        MVi.append(MVi[-1]+(Kc*Ts*E[-1])/Ti)
+    #Action Proportionelle
+    MVP.append(Kc*E[-1])
+
+    #Action integral
+    if(len(MVI)>0):
+        MVI.append(MVI[-1]+(Kc*Ts*E[-1])/Ti)
     else :
-        MVi.append(0)
+        MVI.append(0)
     
+    #Action derivé
+
     Tfd = alpha*Td
     if(Td>0):
-        if(len(MVd)!=0):
+        if(len(MVD)!=0):
             if(len(E)==1):
-                MVd.append((Tfd/(Tfd+Ts))*MVd[-1] + ((Kc*Td)/(Tfd+Ts))*(E[-1]))
+                MVD.append((Tfd/(Tfd+Ts))*MVD[-1] + ((Kc*Td)/(Tfd+Ts))*(E[-1]))
 
             else:
-                MVd.append(( Tfd / (Tfd+Ts) )*MVd[-1] + ( (Kc*Td) / (Tfd+Ts) ) *(E[-1]-E[-2]))
-        else : MVd.append(0)
-  
-    MV.append(MVp[-1]+MVi[-1]+MVd[-1])
+                MVD.append(( Tfd / (Tfd+Ts) )*MVD[-1] + ( (Kc*Td) / (Tfd+Ts) ) *(E[-1]-E[-2]))
+        else : MVD.append(0)
+
+    MVPID.append(MV[-1]+MVP[-1])#+MVI[-1]+MVD[-1]
     
     return None
