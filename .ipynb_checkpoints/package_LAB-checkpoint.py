@@ -31,7 +31,12 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MV
                 MVd.append(( Tfd / (Tfd+Ts) )*MVd[-1] + ( (Kc*Td) / (Tfd+Ts) ) *(E[-1]-E[-2]))
         else : MVd.append(0)
   
-
-    MV.append(MVp[-1]+MVi[-1]+MVd[-1])
+    
+    if(MVp[-1]+MVi[-1]+MVd[-1] <MVMin) :
+        MV.append(MVMin)
+    elif (MVp[-1]+MVi[-1]+MVd[-1] <MVMax) :
+        MV.append(MVp[-1]+MVi[-1]+MVd[-1])
+    else :
+        MV.append(MVMax)
     
     return None
