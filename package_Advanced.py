@@ -96,7 +96,6 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID,
         MVI.append(0)
     
     #Action derivé
-
     Tfd = alpha*Td
     if(Td>0):
         if(len(MVD)!=0):
@@ -107,6 +106,39 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID,
                 MVD.append(( Tfd / (Tfd+Ts) )*MVD[-1] + ( (Kc*Td) / (Tfd+Ts) ) *(E[-1]-E[-2]))
         else : MVD.append(0)
 
-    MVPID.append(MVP[-1]+MVI[-1]+MVD[-1])
+    result = MVP[-1]+MVI[-1]+MVD[-1]
+    if (result > MVMax) :
+        result = MVMax
+    elif (result < MVMin) :
+        result = MVMin
+    else :
+        result = result
+
+    MVPID.append(result)
     
     return None
+
+
+def FF_RT(Dv0,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, PV_FF, ManFF=False, PVInit=0, method='EBD-EBD'):
+
+    PV_LL1 = []
+    PV_LL2 = []
+    PV_Delay = []
+
+    KFF = -(Kd/Kp)
+
+    Dv0_gain = Dv0*KFF
+
+    thetaF = max(0,ThetaD-ThetaP)
+    thetaFF = round(thetaF/Ts)
+
+    LeadLag_RT(Dv0_gain,0,T1p,T1d,Ts,PV_LL1,PVInit=0,method='EDB')
+    LeadLag_RT(PV_LL1,0,T2p,T2d,Ts,PV_LL2,PVInit=0,method='EDB')
+    Delay_RT(PV_LL2,thetaFF,Ts,PV_Delay,MVInit=0)
+
+    PV_FF = PV_Delay
+
+    return None
+
+    
+

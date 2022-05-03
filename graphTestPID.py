@@ -15,7 +15,8 @@ Ts = 0.1 # Temps du samling
 N = int(TSim/Ts) + 1 # nombres de samples 
 
 # Path for MV
-MVPath = {0: 0, 5: 40, 280:0, TSim: 45} # Chemin choisis
+MVPath = {0: 0, 5: 40, 280:0, TSim: 55} # Chemin choisis
+ManPath = {0: 0, 5: 50, 280:0, TSim: 55} # Chemin choisis
 
 # FO Parametrers
 #Final SSE Objective: 0.03787173811807361
@@ -64,8 +65,13 @@ def plotValues(Kp,T,theta,Kc,Ti,Td,alpha,MVPath,TSim,Ts):
 
 
     for i in range(0,N):
+        # Calculer les temps de sampling
         t.append(i*Ts)
+        # Chemin de set point
         SelectPath_RT(MVPath,t,SP)
+        # Chemin de manuel
+        SelectPath_RT(ManPath,t,Man)
+
         PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVP, MVI, MVD, E, ManFF=False, PVInit=0, method='EBD-EBD')
         FO_RT(MV,Kp,T,Ts,PV,PVInit=0,method='EBD')
     
@@ -97,7 +103,7 @@ axalpha = plt.axes([0.15, 0.2, 0.5, 0.03])
 Kc_slider = Slider(ax=axKc,label='Kc',valmin=0.1,valmax=20,valinit=Kc)
 Ti_slider = Slider(ax=axTi,label='Ti',valmin=0.1,valmax=TSim,valinit=Ti)
 Td_slider = Slider(ax=axTd,label='Td',valmin=0.1,valmax=TSim,valinit=Td)
-alpha_slider = Slider(ax=axalpha,label='alpha',valmin=0,valmax=20,valinit=alpha)
+alpha_slider = Slider(ax=axalpha,label='alpha',valmin=0.1,valmax=20,valinit=alpha)
 
 
 # The function to be called anytime a slider's value changes
@@ -106,7 +112,9 @@ def update(val):
     PVg.set_ydata(PV)
     MVg.set_ydata(MV)
     fig.canvas.draw_idle()
-    ax.set_ylim(min(min(MV),min(PV))-0.1,max(max(MV),max(PV))+0.1)
+    ming = min(min(MV),min(PV))
+    maxg = max(max(MV),max(PV))
+    ax.set_ylim(ming + ming/10,maxg + maxg/10)
 
 # register the update function with each slider
 Kc_slider.on_changed(update)
@@ -129,4 +137,5 @@ button.on_clicked(reset)
 #manager = plt.get_current_fig_manager()
 #manager.full_screen_toggle()
 
+plt.title('PID live graph')
 plt.show()
