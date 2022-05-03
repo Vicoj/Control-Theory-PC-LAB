@@ -35,7 +35,7 @@ Ti = 60
 Td = 60
 alpha = 1
 
-MVMin = -100
+MVMin = 0
 MVMax = 100
 
 MV = []
