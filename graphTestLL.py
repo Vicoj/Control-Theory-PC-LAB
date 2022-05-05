@@ -96,4 +96,5 @@ button.on_clicked(reset)
 #manager = plt.get_current_fig_manager()
 #manager.full_screen_toggle()
 
+plt.title('Lead Lag live graph')
 plt.show()

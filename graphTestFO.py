@@ -21,8 +21,8 @@ MVPath = {0: 30, 5: 70, 280:30, TSim: 75} # Chemin choisis
 #Final SSE Objective: 0.03787173811807361
 Kp = 0.654997667761135
 T = 141.9367358894029
-theta = 6.678212203596281
-PV = []
+Theta = 6.678212203596281
+
 
 def plotValues(Kp,T,theta,MVPath,TSim,Ts):
     
@@ -38,7 +38,7 @@ def plotValues(Kp,T,theta,MVPath,TSim,Ts):
     for i in range(0,N):
         t.append(i*Ts)
         SelectPath_RT(MVPath,t,MV)
-        Delay_RT(MV,theta,Ts,MVDelay) 
+        Delay_RT(MV,Theta,Ts,MVDelay) 
         FO_RT(MVDelay,Kp,T,Ts,PV_FO,PVInit=30,method='EBD')
     
     return t,MV,PV_FO
@@ -47,7 +47,7 @@ def plotValues(Kp,T,theta,MVPath,TSim,Ts):
 
 # Create the figure and the line that we will manipulate
 fig, ax = plt.subplots()
-t,MV,PV_FO = plotValues(Kp,T,theta,MVPath,TSim,Ts)
+t,MV,PV_FO = plotValues(Kp,T,Theta,MVPath,TSim,Ts)
 FO, = plt.plot(t,PV_FO, lw=2,label='FO Responce (EDB)')
 default, = plt.plot(t,MV)
 
@@ -63,9 +63,9 @@ axT = plt.axes([0.15, 0.1, 0.5, 0.03])
 axtheta = plt.axes([0.15, 0.15, 0.5, 0.03])
 
 
-Kp_slider = Slider(ax=axKp,label='Kp',valmin=0,valmax=10,valinit=Kp,orientation="vertical")
-T_slider = Slider(ax=axT,label='T',valmin=0,valmax=TSim,valinit=T)
-theta_slider = Slider(ax=axtheta,label='theta',valmin=0,valmax=TSim,valinit=theta)
+Kp_slider = Slider(ax=axKp,label='Kp',valmin=0,valmax=Kp,valinit=Kp,orientation="vertical")
+T_slider = Slider(ax=axT,label='T',valmin=0,valmax=T,valinit=T)
+theta_slider = Slider(ax=axtheta,label='theta',valmin=0,valmax=Theta,valinit=Theta)
 
 
 # The function to be called anytime a slider's value changes
@@ -93,5 +93,5 @@ button.on_clicked(reset)
 #Full screen
 #manager = plt.get_current_fig_manager()
 #manager.full_screen_toggle()
-
+plt.title('First Order live graph')
 plt.show()

@@ -44,7 +44,7 @@ def LeadLag_RT(MV,Kp,TLead,TLag,Ts,PV,PVInit=0,method='EDB'):
     else:
         PV.append(Kp*MV[-1])
 
-def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID, MVP, MVI, MVD, E, ManFF=False, PVInit=0, method='EBD-EBD'):
+def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID, MVP, MVI, MVD, E, OLP, ManFF=False, PVInit=0, method='EBD-EBD'):
 
     """
     :SP: Set Point vector
@@ -80,11 +80,17 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID,
     This function apends new values to the output vector "MV", "MVP", "MVI", "MVD".
      """
 
-    #Initialisation de E
-    if(len(PV)==0):
-        E.append(SP[-1]-PVInit)
-    else :
-        E.append(SP[-1]-PV[-1])
+    #Initialisation de E + OLP
+    
+    if (not OLP):
+
+        if(len(PV)==0):
+            E.append(SP[-1]-PVInit)
+        
+        else:
+            E.append(SP[-1]-PV[-1])
+    else:
+        E.append(SP[-1])
     
     #Action Proportionelle
     MVP.append(Kc*E[-1])
@@ -106,7 +112,12 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID,
                 MVD.append(( Tfd / (Tfd+Ts) )*MVD[-1] + ( (Kc*Td) / (Tfd+Ts) ) *(E[-1]-E[-2]))
         else : MVD.append(0)
 
-    result = MVP[-1]+MVI[-1]+MVD[-1]
+    # Verif Feed Forward
+    if (len(MVFF) != 0 ):
+        result = MVP[-1]+MVI[-1]+MVD[-1]+MVFF[-1]
+    else:
+        result = MVP[-1]+MVI[-1]+MVD[-1]
+    # Saturation
     if (result > MVMax) :
         result = MVMax
     elif (result < MVMin) :
@@ -119,7 +130,7 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID,
     return None
 
 
-def FF_RT(Dv0,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, PV_FF, ManFF=False, PVInit=0, method='EBD-EBD'):
+def FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, PV_FF):
 
     PV_LL1 = []
     PV_LL2 = []
@@ -127,7 +138,7 @@ def FF_RT(Dv0,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, PV_FF, ManFF=Fals
 
     KFF = -(Kd/Kp)
 
-    Dv0_gain = Dv0*KFF
+    Dv0_gain = DV[-1]*KFF
 
     thetaF = max(0,ThetaD-ThetaP)
     thetaFF = round(thetaF/Ts)
