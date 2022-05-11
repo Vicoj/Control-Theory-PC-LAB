@@ -138,16 +138,14 @@ def FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, PV_FF):
 
     KFF = -(Kd/Kp)
 
-    Dv0_gain = DV[-1]*KFF
-
     thetaF = max(0,ThetaD-ThetaP)
     thetaFF = round(thetaF/Ts)
 
-    LeadLag_RT(Dv0_gain,0,T1p,T1d,Ts,PV_LL1,PVInit=0,method='EDB')
-    LeadLag_RT(PV_LL1,0,T2p,T2d,Ts,PV_LL2,PVInit=0,method='EDB')
+    LeadLag_RT(DV,KFF,T1p,T1d,Ts,PV_LL1,PVInit=0,method='EDB')
+    LeadLag_RT(PV_LL1,1,T2p,T2d,Ts,PV_LL2,PVInit=0,method='EDB')
     Delay_RT(PV_LL2,thetaFF,Ts,PV_Delay,MVInit=0)
 
-    PV_FF = PV_Delay
+    PV_FF.append(PV_Delay[-1])
 
     return None
 

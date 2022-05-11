@@ -4,6 +4,8 @@ from scipy.optimize import minimize
 from matplotlib import colors as mcolors
 from matplotlib.widgets import Slider, Button, RadioButtons,TextBox,CheckButtons
 import matplotlib.patches as mpatches
+from datetime import datetime
+import os
 
 import package_DBR
 from package_DBR import *
@@ -18,8 +20,8 @@ N = int(TSim/Ts) + 1 # nombres de samples
 
 # Path for MV
 #MVPath = {0: 0, 5: 40, 280:0, TSim: 55} # Chemin choisis
-MVPath = {0: 0, 50: 1, 500: 2, 800: 3, TSim: 3} # Chemin choisis
-DVPath = {0: 0, 400: 3, 500:0, TSim: 0} # Chemin choisis
+MVPath = {0: 20, 500: 20, TSim: 20} # Chemin choisis
+DVPath = {0: 0, 5: 30, 900:0, TSim: 0} # Chemin choisis
 
 # FO P Parametrers
 #Final SSE Objective: 0.03787173811807361
@@ -28,9 +30,9 @@ Tp = 141.9367358894029
 ThetaP = 6.678212203596281
 
 # FO D Parametres
-Kd = 69809.39444564922
-Td = 37604923.967538156
-ThetaD = 18.000023725261713
+Kd = 0.06
+Td = 200
+ThetaD = 6.678212203596281
 
 # FF Parametres
 T1p = 1
@@ -54,7 +56,6 @@ MVMax = 100
 
 OLP = False
 
-t = []
 SP = []
 DV = []
   
@@ -76,26 +77,29 @@ def plotValues(Kp,Kc,Ti,Td,alpha,OLP):
     PV_P = []
 
     PV = []
-
+    SP = []
+    DV = []
+    
+    
     for i in range(0,N):
 
-        
+        PVInit = 10
+        ManFF=False
         t.append(i*Ts)
         SelectPath_RT(MVPath,t,SP)
         SelectPath_RT(DVPath,t,DV)
 
 
-        #FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, MVFF)
+        FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, MVFF)
 
         #D
-        #FO_RT(DV,Kd,Td,Ts,PV_D,PVInit=0,method='EBD')
+        FO_RT(DV,Kd,Td,Ts,PV_D,PVInit,method='EBD')
         #PID
-        PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVP, MVI, MVD, E,OLP, ManFF=False, PVInit=0, method='EBD-EBD')
+        PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVP, MVI, MVD, E,OLP, ManFF,PVInit, method='EBD-EBD')
         #P
-        FO_RT(MV,Kp,Tp,Ts,PV_P,PVInit=0,method='EBD')
+        FO_RT(MV,Kp,Tp,Ts,PV_P,PVInit,method='EBD')
 
-        #PV = np.add(PV_P ,PV_D)
-        PV = PV_P
+        PV.append(PV_P[-1]+PV_D[-1])
     
     
     return t,SP,PV,MV,DV
@@ -171,7 +175,21 @@ check.on_clicked(update)
 # Fuctions
 
 def save(event):
+    t,SP,PV,MV,DV = plotValues(Kp,Kc,Ti,Td,alpha,OLP)
     fig.savefig("Output/"+text_box.text)
+    now = datetime.now()
+    date_time = now.strftime("%Y-%m-%d-%Hh%M")
+    t = np.array(t)
+    MV = np.array(MV)
+    PV = np.array(PV)
+    DV = np.array(DV)
+    my_data = np.vstack((t.T,MV.T,PV.T,DV.T))
+    my_data = my_data.T
+    nameFile = 'Data/PID_Graph_' + text_box.text + '_' + date_time + '.txt'
+    if not os.path.exists('Data'):
+        os.makedirs('Data')
+    np.savetxt(nameFile,my_data,delimiter=',',header='t,MV,PV,DV',comments='')
+                   
 button_save.on_clicked(save)
 
 def reset(event):
