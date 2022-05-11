@@ -22,6 +22,8 @@ N = int(TSim/Ts) + 1 # nombres de samples
 #MVPath = {0: 0, 5: 40, 280:0, TSim: 55} # Chemin choisis
 MVPath = {0: 0, 5: 60 ,1000: 60, TSim: 60} # Chemin choisis
 DVPath = {0: 0, 5: 50, 1500:60, TSim: 60} # Chemin choisis
+MANPath = {0: 0, 800:0, 900:0,TSim: 0} # Chemin choisis
+
 
 # FO P Parametrers
 #Final SSE Objective: 0.03787173811807361
@@ -48,8 +50,8 @@ T2d = 10
 
 # PID Parametrers
 
-Man = 0
-MVMan = []
+Man = []
+MVMan = [80]
 MVFF = []
 
 Kc = 1
@@ -70,6 +72,7 @@ def plotValues(Kp,Kc,Ti,Td,alpha,OLP):
     t = []
     #FF
     MVFF = []
+
 
     #PID
     MV = []
@@ -96,10 +99,12 @@ def plotValues(Kp,Kc,Ti,Td,alpha,OLP):
     for i in range(0,N):
 
         PVInit = 0
-        ManFF=False
+        ManFF=True
         t.append(i*Ts)
         SelectPath_RT(MVPath,t,SP)
         SelectPath_RT(DVPath,t,DV)
+        SelectPath_RT(MANPath,t,Man)
+
 
         # Feed Forward
         FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, DV0,PVInit,MVFF_Delay,MV_LL1,MV_LL2 , MVFF)
