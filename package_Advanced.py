@@ -45,8 +45,7 @@ def LeadLag_RT(MV,Kp,TLead,TLag,Ts,PV,PVInit=0,method='EDB'):
 
     return None
 
-def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID, MVP, MVI, MVD, E, OLP, ManFF=False, PVInit=0, method='EBD-EBD'):
-
+def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVp, MVi, MVd, E, OLP, ManFF=False, PVInit=0, method='EBD-EBD'):
     """
     :SP: Set Point vector
     :PV: Process Value vector
@@ -80,57 +79,60 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID,
         
     This function apends new values to the output vector "MV", "MVP", "MVI", "MVD".
      """
-
-    #Initialisation de E + OLP
     
-    if (not OLP):
-
+    #calcul de l'erreur SP-PV
+    
+    if(not OLP):
         if(len(PV)==0):
             E.append(SP[-1]-PVInit)
-        
-        else:
+        else :
             E.append(SP[-1]-PV[-1])
     else:
         E.append(SP[-1])
     
-    #Action Proportionelle
-    MVP.append(Kc*E[-1])
-
-    #Action integral
-    if(len(MVI)>0):
-        MVI.append(MVI[-1]+(Kc*Ts*E[-1])/Ti)
-    else :
-        MVI.append(0)
+    #calcul de MVp
     
-    #Action derivé
+    MVp.append(Kc*E[-1])
+    
+    #calcul MVi
+    
+    if(len(MVi)>0):
+        MVi.append(MVi[-1]+(Kc*Ts*E[-1])/Ti)
+    else :
+        MVi.append(0)
+    
+    #calcul MVd
+    
     Tfd = alpha*Td
     if(Td>0):
-        if(len(MVD)!=0):
+        if(len(MVd)!=0):
             if(len(E)==1):
-                MVD.append((Tfd/(Tfd+Ts))*MVD[-1] + ((Kc*Td)/(Tfd+Ts))*(E[-1]))
-
+                MVd.append((Tfd/(Tfd+Ts))*MVd[-1] + ((Kc*Td)/(Tfd+Ts))*(E[-1]))
             else:
-                MVD.append(( Tfd / (Tfd+Ts) )*MVD[-1] + ( (Kc*Td) / (Tfd+Ts) ) *(E[-1]-E[-2]))
-        else : MVD.append(0)
-
-    # Feed Forward
-    if (len(MVFF) != 0 ):
-        result = MVP[-1]+MVI[-1]+MVD[-1]+MVFF[-1]
-    else:
-        result = MVP[-1]+MVI[-1]+MVD[-1]
+                MVd.append(( Tfd / (Tfd+Ts) )*MVd[-1] + ( (Kc*Td) / (Tfd+Ts) ) *(E[-1]-E[-2]))
+        else :
+            MVd.append(0)
+        
+    #calcul saturation, anti emballement, reset saturation integrateur
     
-    # Saturation
-    if (result > MVMax) :
-        result = MVMax
-    elif (result < MVMin) :
-        result = MVMin
+    #mode automatique
+    if(not Man[-1]):
+        #saturation
+        if(MVp[-1]+MVi[-1]+MVd[-1] <MVMin) :
+            MVi[-1] = MVMin - MVp[-1] - MVd[-1] #ecrasement valeur de MV
+        elif (MVp[-1]+MVi[-1]+MVd[-1] >=MVMax) :
+            MVi[-1] = MVMax - MVp[-1] - MVd[-1]
+        MV.append(MVp[-1]+MVi[-1]+MVd[-1])
+    
+    #mode manuel
     else :
-        result = result
-
-    MVPID.append(result)
-    
+        if(ManFF):
+            MVi[-1]=MVMan[-1]-MVp[-1]-MVd[-1]
+        else:
+            MVi[-1]=MVMan[-1]-MVp[-1]-MVd[-1]-MVFF[-1]
+            
+        MV.append(MVp[-1]+MVi[-1]+MVd[-1])
     return None
-
 
 def FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, DV0,PVInit,MVFF_Delay,MV_LL1,MV_LL2 ,MVFF):
 
