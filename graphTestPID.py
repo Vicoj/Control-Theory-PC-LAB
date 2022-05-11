@@ -14,14 +14,14 @@ import package_Advanced
 from package_Advanced import *
 
 
-TSim = 1000 #Temps de la simulation
+TSim = 2000 #Temps de la simulation
 Ts = 1 # Temps du samling
 N = int(TSim/Ts) + 1 # nombres de samples 
 
 # Path for MV
 #MVPath = {0: 0, 5: 40, 280:0, TSim: 55} # Chemin choisis
-MVPath = {0: 20, 500: 20, TSim: 20} # Chemin choisis
-DVPath = {0: 0, 5: 30, 900:0, TSim: 0} # Chemin choisis
+MVPath = {0: 0, 5: 60 ,1000: 60, TSim: 60} # Chemin choisis
+DVPath = {0: 0, 5: 50, 1500:60, TSim: 60} # Chemin choisis
 
 # FO P Parametrers
 #Final SSE Objective: 0.03787173811807361
@@ -29,16 +29,22 @@ Kp = 0.654997667761135
 Tp = 141.9367358894029
 ThetaP = 6.678212203596281
 
+PV0 = 50
+MV0 = 50
+
 # FO D Parametres
 Kd = 0.06
 Td = 200
 ThetaD = 6.678212203596281
+MVDelayD = 1
+
+DV0 = 50
 
 # FF Parametres
-T1p = 1
-T1d = 1
-T2p = 1
-T2d = 1
+T1p = Tp
+T1d = Td
+T2p = 10
+T2d = 10
 
 # PID Parametrers
 
@@ -71,8 +77,14 @@ def plotValues(Kp,Kc,Ti,Td,alpha,OLP):
     MVI = []
     MVD = []
     E = []
+
     #Ds
     PV_D = []
+    MV_LL1 = []
+    MV_LL2 = []
+    MVFF_Delay = []
+    MVDelayD = []
+
     #Ps
     PV_P = []
 
@@ -83,36 +95,45 @@ def plotValues(Kp,Kc,Ti,Td,alpha,OLP):
     
     for i in range(0,N):
 
-        PVInit = 10
+        PVInit = 0
         ManFF=False
         t.append(i*Ts)
         SelectPath_RT(MVPath,t,SP)
         SelectPath_RT(DVPath,t,DV)
 
+        # Feed Forward
+        FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, DV0,PVInit,MVFF_Delay,MV_LL1,MV_LL2 , MVFF)
 
-        FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, MVFF)
-
-        #D
-        FO_RT(DV,Kd,Td,Ts,PV_D,PVInit,method='EBD')
         #PID
-        PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVP, MVI, MVD, E,OLP, ManFF,PVInit, method='EBD-EBD')
-        #P
+        PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVP, MVI, MVD, E,OLP, ManFF,PVInit = 0, method='EBD-EBD')
+
+        #P(s) Processus
         FO_RT(MV,Kp,Tp,Ts,PV_P,PVInit,method='EBD')
 
-        PV.append(PV_P[-1]+PV_D[-1])
+        #D(s) Disturbance
+        Delay_RT(DV - DV0*np.ones_like(DV),ThetaD,Ts,MVDelayD,0)
+        FO_RT(MVDelayD,Kd,Td,Ts,PV_D,PVInit,method='EBD')
+        
+        
+
+        PV.append(PV_P[-1]+PV_D[-1] + PV0-Kp*MV0)
     
     
-    return t,SP,PV,MV,DV
+    return t,SP,PV,MV,DV,MVFF,[MVP,MVI,MVD]
 
 
 
 # Create the figure and the line that we will manipulate
 fig, ax = plt.subplots()
-t,SP,PV,MV,DV = plotValues(Kp,Kc,Ti,Td,alpha,OLP)
+t,SP,PV,MV,DV,MVFF,PID = plotValues(Kp,Kc,Ti,Td,alpha,OLP)
 PVg, = plt.plot(t,PV,color='b')
 MVg, = plt.plot(t,MV,color='g')
 SPg, = plt.plot(t,SP,color='r')
 DVg, = plt.plot(t,DV,color='c')
+MVFFg, = plt.plot(t,MVFF,color='k')
+MVPg, = plt.plot(t,PID[0],color='#71FF33')
+MVIg, = plt.plot(t,PID[1],color='#4F8C35')
+MVDg, = plt.plot(t,PID[2],color='#36920F')
 
 ax.set_xlabel('Time [s]')
 
@@ -134,18 +155,25 @@ alpha_slider = Slider(ax=axalpha,label='alpha',valmin=0.1,valmax=20,valinit=alph
 
 # The function to be called anytime a slider's value changes
 def update(val):
-    t,SP,PV,MV,DV = plotValues(Kp,Kc_slider.val,Ti_slider.val,Td_slider.val,alpha_slider.val,check.get_status()[0])
+    t,SP,PV,MV,DV,MVFF,PID = plotValues(Kp,Kc_slider.val,Ti_slider.val,Td_slider.val,alpha_slider.val,check.get_status()[0])
     PVg.set_ydata(PV)
     MVg.set_ydata(MV)
+    MVPg.set_ydata(PID[0])
+    MVIg.set_ydata(PID[1])
+    MVDg.set_ydata(PID[2])
 
     PVg.set_visible(check.get_status()[1])
     MVg.set_visible(check.get_status()[2])
     SPg.set_visible(check.get_status()[3])
     DVg.set_visible(check.get_status()[4])
+    MVFFg.set_visible(check.get_status()[5])
+    MVPg.set_visible(check.get_status()[6])
+    MVIg.set_visible(check.get_status()[6])
+    MVDg.set_visible(check.get_status()[6])
 
     fig.canvas.draw_idle()
-    ming = min(min(MV),min(PV))
-    maxg = max(max(MV),max(PV))
+    ming = min(min(MV),min(MVFF))
+    maxg = MVMax
     ax.set_ylim(ming + ming/10,maxg + maxg/10)
 
 # register the update function with each slider
@@ -169,13 +197,13 @@ button_close = Button(closefig, 'Close', hovercolor='0.975')
 # Check Box
 
 rax = plt.axes([0.025, 0.75, 0.05, 0.1]) # gauche haut droit bas (relatif)
-check = CheckButtons(rax, ['OLP','PV','MV','SP','DV'], [False,True,True,True,True])
+check = CheckButtons(rax, ['OLP','PV','MV','SP','DV','MVFF','MVFB'], [False,True,True,True,True,True,True])
 check.on_clicked(update)
 
 # Fuctions
 
 def save(event):
-    t,SP,PV,MV,DV = plotValues(Kp,Kc,Ti,Td,alpha,OLP)
+    t,SP,PV,MV,DV,MVFF = plotValues(Kp,Kc,Ti,Td,alpha,OLP)
     fig.savefig("Output/"+text_box.text)
     now = datetime.now()
     date_time = now.strftime("%Y-%m-%d-%Hh%M")
@@ -213,8 +241,13 @@ PVl = mpatches.Patch(color='b', label='PV')
 MVl = mpatches.Patch(color='g', label='MV')
 SPl = mpatches.Patch(color='r', label='SP')
 DVl = mpatches.Patch(color='c', label='DV')
+MVFFl = mpatches.Patch(color='k', label='MVFF')
+MVPl = mpatches.Patch(color='#71FF33', label='MVP')
+MVIl = mpatches.Patch(color='#4F8C35', label='MVI')
+MVDl = mpatches.Patch(color='#36920F', label='MVD')
 
-ax.legend(handles=[PVl,MVl,SPl,DVl])
+
+ax.legend(handles=[PVl,MVl,SPl,DVl,MVFFl,MVPl,MVIl,MVDl])
 
 ax.grid()
 ax.set_title(label='PID Simulation')

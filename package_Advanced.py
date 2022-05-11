@@ -35,7 +35,6 @@ def LeadLag_RT(MV,Kp,TLead,TLag,Ts,PV,PVInit=0,method='EDB'):
             if method == 'EBD':
                 PV.append((1/(1+K))*PV[-1] + (K*Kp/(1+K))*((1+TLead/Ts)*MV[-1]- (TLead/Ts)*MV[-2]))
             elif method == 'EFD':
-                #PV.append((1/(1+K))*PV[-1] + (K*Kp/(1+K))*((1+TLead/Ts)*MV[-1]- (TLead/Ts)*MV[-2]))
                 PV.append((1-K)*PV[-1] + (K*Kp)*((TLead/Ts)*MV[-1] +(1-(TLead/Ts))*MV[-2]))
             elif method == 'TRAP':
                 "PV.append((1/(2*T+Ts))*((2*T-Ts)*PV[-1] + Kp*Ts*(MV[-1] + MV[-2])))"            
@@ -43,6 +42,8 @@ def LeadLag_RT(MV,Kp,TLead,TLag,Ts,PV,PVInit=0,method='EDB'):
                 PV.append((1/(1+K))*PV[-1] + (K*Kp/(1+K))*((1+TLead/Ts)*MV[-1]- (TLead/Ts)*MV[-2]))
     else:
         PV.append(Kp*MV[-1])
+
+    return None
 
 def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID, MVP, MVI, MVD, E, OLP, ManFF=False, PVInit=0, method='EBD-EBD'):
 
@@ -130,22 +131,19 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID,
     return None
 
 
-def FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, PV_FF):
+def FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, DV0,PVInit,MVFF_Delay,MV_LL1,MV_LL2 ,MVFF):
 
-    PV_LL1 = []
-    PV_LL2 = []
-    PV_Delay = []
+    KFF = -(Kd/Kp) #Gain
 
-    KFF = -(Kd/Kp)
+    thetaFF = np.max([ThetaD-ThetaP,0]) #Dephasage
+    PVFF = DV-DV0*np.ones_like(DV)
+    Delay_RT(PVFF,thetaFF,Ts,MVFF_Delay,PVInit) 
 
-    thetaF = max(0,ThetaD-ThetaP)
-    thetaFF = round(thetaF/Ts)
+    LeadLag_RT(MVFF_Delay,KFF,T1p,T1d,Ts,MV_LL1,PVInit,method='EDB')
+    LeadLag_RT(MV_LL1,1,T2p,T2d,Ts,MV_LL2,PVInit,method='EDB')
+    
 
-    LeadLag_RT(DV,KFF,T1p,T1d,Ts,PV_LL1,PVInit=0,method='EDB')
-    LeadLag_RT(PV_LL1,1,T2p,T2d,Ts,PV_LL2,PVInit=0,method='EDB')
-    Delay_RT(PV_LL2,thetaFF,Ts,PV_Delay,MVInit=0)
-
-    PV_FF.append(PV_Delay[-1])
+    MVFF.append(MV_LL2[-1])
 
     return None
 
