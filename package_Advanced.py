@@ -113,11 +113,12 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MVPID,
                 MVD.append(( Tfd / (Tfd+Ts) )*MVD[-1] + ( (Kc*Td) / (Tfd+Ts) ) *(E[-1]-E[-2]))
         else : MVD.append(0)
 
-    # Verif Feed Forward
+    # Feed Forward
     if (len(MVFF) != 0 ):
         result = MVP[-1]+MVI[-1]+MVD[-1]+MVFF[-1]
     else:
         result = MVP[-1]+MVI[-1]+MVD[-1]
+    
     # Saturation
     if (result > MVMax) :
         result = MVMax
