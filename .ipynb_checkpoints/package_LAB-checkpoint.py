@@ -52,7 +52,7 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MV
             MVi[-1] = MVMin - MVp[-1] - MVd[-1] #ecrasement valeur de MV
         elif (MVp[-1]+MVi[-1]+MVd[-1] >=MVMax) :
             MVi[-1] = MVMax - MVp[-1] - MVd[-1]
-    MV.append(MVp[-1]+MVi[-1]+MVd[-1])
+        MV.append(MVp[-1]+MVi[-1]+MVd[-1])
     
     #mode manuel
     else :
@@ -60,6 +60,7 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MV
             MVi[-1]=MVMan[-1]-MVp[-1]-MVd[-1]
         else:
             MVi[-1]=MVMan[-1]-MVp[-1]-MVd[-1]-MVFF[-1]
+        MV.append(MVp[-1]+MVi[-1]+MVd[-1])
     
     return None
 
