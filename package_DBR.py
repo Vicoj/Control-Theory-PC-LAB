@@ -97,7 +97,7 @@ def FO_RT(MV,Kp,T,Ts,PV,PVInit=0,method='EBD'):
             else:
                 PV.append((1/(1+K))*PV[-1] + (K*Kp/(1+K))*MV[-1])
     else:
-        PV.append(Kp*MV[-1])
+        PV.append(Kp*MV[-1]) 
 
 #-----------------------------------
 def FOPDT(MV,Kp,T,theta,Ts,MVInit=0,PVInit=0,method='EBD'):
