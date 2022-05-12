@@ -157,12 +157,12 @@ def IMC_Tuning():
     return None
 
 class Simulation:
-    def __init__(self,TSim,Ts,PVinit):
+    def __init__(self,TSim,Ts,PVInit):
         self.TSim = TSim
         self.Ts = Ts
         self.N = int(TSim/Ts) + 1 
-        self.PVinit = PVinit
-
+        self.PVInit = PVInit
+        self.PV = []
         self.t = self.calc_t()
 
     def calc_t(self):
@@ -194,6 +194,7 @@ class FirstOrder:
         self.T = Time
         self.Theta = Theta
         self.point_fct = point_fct
+        self.PV = []
 
 class FeedForward:
     def __init__(self,P:FirstOrder ,D:FirstOrder ):
@@ -209,7 +210,6 @@ class FeedForward:
         self.MV_LL2 = []
         self.MVFF_Delay = []
 
-
 class PID_Controller:
     def __init__(self,Kc,Ti,Td,alpha,MVmin,MVmax,OLP):
             self.Kc = Kc
@@ -219,6 +219,8 @@ class PID_Controller:
             self.MVmin = MVmin
             self.MVmax = MVmax
             self.OLP = OLP
+
+            self.MVMan = []
 
             self.MV = []
             self.MVP = []
