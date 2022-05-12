@@ -45,7 +45,7 @@ def LeadLag_RT(MV,Kp,TLead,TLag,Ts,PV,PVInit=0,method='EDB'):
 
     return None
 
-def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVp, MVi, MVd, E, OLP, ManFF, PVInit=0, method='EBD-EBD'):
+def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVp, MVi, MVd, E, OLP, ManFF, PVInit, method='EBD-EBD'):
     """
     :SP: Set Point vector
     :PV: Process Value vector
