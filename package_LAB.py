@@ -64,10 +64,11 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MV
     
     return None
 
-def IMC_tuning(MV,Kp,T,Ts,Tc,Theta, case="H", T1=0, T2=0, T3=0):
+def IMC_tuning(MV,Kp,T,Ts, T1p ,Theta, gamma, case="H", T1=0, T2=0, T3=0):
     Ti = 1
     Td = 1
     Kc = 1
+    Tc = gamma*T1p
     #à modifier
     if case == "G" :
         Kc = T/(Kp*Tc+Theta)

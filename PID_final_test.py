@@ -15,14 +15,15 @@ from package_LAB import *
 
 
 TSim = 2000 #Temps de la simulation
-Ts = 1 # Temps du samling
+Ts = 1 # Temps du sampling
 N = int(TSim/Ts) + 1 # nombres de samples 
 
 # Path for MV
 #MVPath = {0: 0, 5: 40, 280:0, TSim: 55} # Chemin choisis
-MVPath = {0: 0, 5: 60 ,1000: 60, TSim: 60} # Chemin choisis
-DVPath = {0: 0, 5: 50, 1500:60, TSim: 60} # Chemin choisis
-MANPath = {0: 0, 800:0, 900:0,TSim: 0} # Chemin choisis
+SPPath = {0: 0, 5: 40 ,800: 40,1000 : 60, TSim: 60} # Chemin choisis
+DVPath = {0: 0, 5: 50, TSim: 60} # Chemin choisis
+MANPath = {0: 0, 2000:0,TSim: 0} # Chemin choisis
+MVManPath = {0:50, 2000 : 60}
 
 
 # FO P Parametrers
@@ -43,20 +44,20 @@ MVDelayD = 1
 DV0 = 50
 
 # FF Parametres
-T1p = Tp
-T1d = Td
+T1p = Tp #T1p ~= Ti
+T1d = Td #T1d ~= Td
 T2p = 10
 T2d = 10
 
 # PID Parametrers
 
 Man = []
-MVMan = [80]
+MVMan = []
 MVFF = []
 
-Kc = 1
-Ti = 60
-Td = 60
+Kc = 1.69
+Ti = 141 #Td/Ti < 0.25
+Td = 10
 alpha = 1
 
 MVMin = 0
@@ -101,9 +102,11 @@ def plotValues(Kp,Kc,Ti,Td,alpha,OLP):
         PVInit = 0
         ManFF=True
         t.append(i*Ts)
-        SelectPath_RT(MVPath,t,SP)
+        SelectPath_RT(SPPath,t,SP)
         SelectPath_RT(DVPath,t,DV)
         SelectPath_RT(MANPath,t,Man)
+        SelectPath_RT(MVManPath,t,MVMan)
+        
 
 
         # Feed Forward
@@ -129,18 +132,19 @@ def plotValues(Kp,Kc,Ti,Td,alpha,OLP):
 
 
 # Create the figure and the line that we will manipulate
-fig, ax = plt.subplots()
+fig, (ax1,ax2) = plt.subplots(2)
 t,SP,PV,MV,DV,MVFF,PID = plotValues(Kp,Kc,Ti,Td,alpha,OLP)
-PVg, = plt.plot(t,PV,color='b')
-MVg, = plt.plot(t,MV,color='g')
-SPg, = plt.plot(t,SP,color='r')
-DVg, = plt.plot(t,DV,color='c')
-MVFFg, = plt.plot(t,MVFF,color='k')
-MVPg, = plt.plot(t,PID[0],color='#71FF33')
-MVIg, = plt.plot(t,PID[1],color='#4F8C35')
-MVDg, = plt.plot(t,PID[2],color='#36920F')
+PVg, = ax1.plot(t,PV,color='b')
+MVg, = ax2.plot(t,MV,color='g')
+SPg, = ax1.plot(t,SP,color='r')
+DVg, = ax1.plot(t,DV,color='c')
+MVFFg, = ax2.plot(t,MVFF,color='k')
+MVPg, = ax2.plot(t,PID[0],color='#71FF33')
+MVIg, = ax2.plot(t,PID[1],color='m')
+MVDg, = ax2.plot(t,PID[2],color='#36920F')
 
-ax.set_xlabel('Time [s]')
+ax1.set_xlabel('Time [s]')
+ax2.set_xlabel('Time [s]')
 
 
 # adjust the main plot to make room for the sliders
@@ -179,7 +183,8 @@ def update(val):
     fig.canvas.draw_idle()
     ming = min(min(MV),min(MVFF))
     maxg = MVMax
-    ax.set_ylim(ming + ming/10,maxg + maxg/10)
+    ax1.set_ylim(ming + ming/10,maxg + maxg/10)
+    ax2.set_ylim(ming + ming/10,maxg + maxg/10)
 
 # register the update function with each slider
 Kc_slider.on_changed(update)
@@ -248,12 +253,14 @@ SPl = mpatches.Patch(color='r', label='SP')
 DVl = mpatches.Patch(color='c', label='DV')
 MVFFl = mpatches.Patch(color='k', label='MVFF')
 MVPl = mpatches.Patch(color='#71FF33', label='MVP')
-MVIl = mpatches.Patch(color='#4F8C35', label='MVI')
+MVIl = mpatches.Patch(color='m', label='MVI')
 MVDl = mpatches.Patch(color='#36920F', label='MVD')
 
 
-ax.legend(handles=[PVl,MVl,SPl,DVl,MVFFl,MVPl,MVIl,MVDl])
+ax1.legend(handles=[PVl,SPl,DVl])
+ax2.legend(handles=[MVl,MVFFl,MVPl,MVIl,MVDl])
 
-ax.grid()
-ax.set_title(label='PID Simulation')
+ax1.grid()
+ax2.grid()
+ax1.set_title(label='PID Simulation')
 plt.show()
