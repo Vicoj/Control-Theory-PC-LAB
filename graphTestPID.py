@@ -13,104 +13,35 @@ from package_DBR import *
 import package_Advanced
 from package_Advanced import *
 
+#Simulation Instance
+SIM = Simulation(2000,1)
 
-TSim = 2000 #Temps de la simulation
-Ts = 1 # Temps du samling
-N = int(TSim/Ts) + 1 # nombres de samples 
+# Path for Every Signal
+MV = Path(SIM,{0: 0, 5: 60 ,1000: 60, SIM.TSim: 60})
+DV = Path(SIM,{0: 0, 5: 0, 1500:0, SIM.TSim: 0} )
+MAN = Path(SIM, {0: 0, 800:0, 900:0,SIM.TSim: 0})
 
-# Path for MV
-#MVPath = {0: 0, 5: 40, 280:0, TSim: 55} # Chemin choisis
-MVPath = {0: 0, 5: 60 ,1000: 60, TSim: 60} # Chemin choisis
-DVPath = {0: 0, 5: 50, 1500:60, TSim: 60} # Chemin choisis
-MANPath = {0: 0, 800:0, 900:0,TSim: 0} # Chemin choisis
+# FO Process
+P = FirstOrder(0.654997667761135,141.9367358894029,6.678212203596281,50)
 
-
-# FO P Parametrers
-#Final SSE Objective: 0.03787173811807361
-Kp = 0.654997667761135
-Tp = 141.9367358894029
-ThetaP = 6.678212203596281
-
-PV0 = 50
-MV0 = 50
-
-# FO D Parametres
-Kd = 0.06
-Td = 200
-ThetaD = 6.678212203596281
-MVDelayD = 1
-
-DV0 = 50
+# FO Disturbance Parametres
+D = FirstOrder(0.06,200,6.678212203596281,50)
 
 # FF Parametres
-T1p = Tp
-T1d = Td
-T2p = 10
-T2d = 10
+FF = FeedForward(P,D)
 
 # PID Parametrers
+PID = PID_Controller(2,50,10,0.5,0,100,False)
 
-Man = []
-MVMan = [80]
-MVFF = []
 
-Kc = 1
-Ti = 60
-Td = 60
-alpha = 1
-
-MVMin = 0
-MVMax = 100
-
-OLP = False
-
-SP = []
-DV = []
-  
 def plotValues(Kp,Kc,Ti,Td,alpha,OLP):
-    N = int(TSim/Ts) + 1 # nombres de samples 
-    t = []
-    #FF
-    MVFF = []
-
-
-    #PID
-    MV = []
-    MVP = []
-    MVI = []
-    MVD = []
-    E = []
-
-    #Ds
-    PV_D = []
-    MV_LL1 = []
-    MV_LL2 = []
-    MVFF_Delay = []
-    MVDelayD = []
-
-    #Ps
-    PV_P = []
-
-    PV = []
-    SP = []
-    DV = []
     
-    
-    for i in range(0,N):
-
-        PVInit = 0
-        ManFF=True
-        t.append(i*Ts)
-        SelectPath_RT(MVPath,t,SP)
-        SelectPath_RT(DVPath,t,DV)
-        SelectPath_RT(MANPath,t,Man)
-
-
+    for i in SIM.t:
         # Feed Forward
-        FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, DV0,PVInit,MVFF_Delay,MV_LL1,MV_LL2 , MVFF)
+        FF_RT(DV.Signal[:i-1], D.K, P.K, FF.T1p, FF.T1d, FF.T2p, FF.T2d , FF.D.Theta, FF.P.Theta, SIM.Ts, D.point_fct,SIM.PVinit,FF.MVFF_Delay,FF.MV_LL1,FF.MV_LL2 , FF.MV)
 
         #PID
-        PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVP, MVI, MVD, E,OLP, ManFF,PVInit = 0, method='EBD-EBD')
+        PID_RT(SP, PV, Man, MVMan, FF.MV, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVP, MVI, MVD, E,OLP, ManFF,PVInit = 0, method='EBD-EBD')
 
         #P(s) Processus
         FO_RT(MV,Kp,Tp,Ts,PV_P,PVInit,method='EBD')

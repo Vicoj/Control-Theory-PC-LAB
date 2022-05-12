@@ -1,3 +1,4 @@
+from xmlrpc.client import Boolean
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -99,7 +100,7 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MV
     if(len(MVi)>0):
         MVi.append(MVi[-1]+(Kc*Ts*E[-1])/Ti)
     else :
-        MVi.append(0)
+        MVi.append(PVInit)
     
     #calcul MVd
     
@@ -111,7 +112,7 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MV
             else:
                 MVd.append(( Tfd / (Tfd+Ts) )*MVd[-1] + ( (Kc*Td) / (Tfd+Ts) ) *(E[-1]-E[-2]))
         else :
-            MVd.append(0)
+            MVd.append(PVInit)
         
     #calcul saturation, anti emballement, reset saturation integrateur
     
@@ -135,10 +136,12 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MV
     return None
 
 def FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, DV0,PVInit,MVFF_Delay,MV_LL1,MV_LL2 ,MVFF):
+    
+    #Gain
+    KFF = -(Kd/Kp) 
 
-    KFF = -(Kd/Kp) #Gain
-
-    thetaFF = np.max([ThetaD-ThetaP,0]) #Dephasage
+    #Dephasage
+    thetaFF = np.max([ThetaD-ThetaP,0])
     PVFF = DV-DV0*np.ones_like(DV)
     Delay_RT(PVFF,thetaFF,Ts,MVFF_Delay,PVInit) 
 
@@ -150,5 +153,75 @@ def FF_RT(DV,Kd, Kp, T1p, T1d, T2p, T2d , ThetaD, ThetaP, Ts, DV0,PVInit,MVFF_De
 
     return None
 
-    
+def IMC_Tuning():
+    return None
 
+class Simulation:
+    def __init__(self,TSim,Ts,PVinit):
+        self.TSim = TSim
+        self.Ts = Ts
+        self.N = int(TSim/Ts) + 1 
+        self.PVinit = PVinit
+
+        self.t = self.calc_t()
+
+    def calc_t(self):
+        t = []
+        for i in range(0,self.N):
+            t.append(i*self.Ts)
+
+        return t
+
+class Path:
+    def __init__(self,S:Simulation,path):
+        self.S = S
+        self.path = path
+        self.Signal = SelectPath_RT()
+
+    def SelectPath_RT(self):
+        signal = []
+        for i in self.S.t:
+            for timeKey in self.path:
+                if(self.S.t[i-1] >= timeKey):
+                    timeKeyPrevious = timeKey    
+            
+            value = self.path[timeKeyPrevious]
+            signal.append(value)
+
+class FirstOrder:
+    def __init__(self,gain,Time,Theta,point_fct):
+        self.K = gain
+        self.T = Time
+        self.Theta = Theta
+        self.point_fct = point_fct
+
+class FeedForward:
+    def __init__(self,P:FirstOrder ,D:FirstOrder ):
+        self.P = P
+        self.D = D
+        self.T1p = P.T
+        self.T2p = 1
+        self.T1d = D.T
+        self.T2d = 1
+
+        self.MV = []
+        self.MV_LL1 = []
+        self.MV_LL2 = []
+        self.MVFF_Delay = []
+
+
+class PID_Controller:
+    def __init__(self,Kc,Ti,Td,alpha,MVmin,MVmax,OLP):
+            self.Kc = Kc
+            self.Ti = Ti
+            self.Td = Td
+            self.alpha = alpha
+            self.MVmin = MVmin
+            self.MVmax = MVmax
+            self.OLP = OLP
+
+            self.MV = []
+            self.MVP = []
+            self.MVI = []
+            self.MVD = []
+            self.E = []
