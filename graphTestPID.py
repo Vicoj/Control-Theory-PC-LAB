@@ -17,7 +17,7 @@ from package_Advanced import *
 SIM = Simulation(2000,1)
 
 # Path for Every Signal
-MV = Path(SIM,{0: 0, 5: 60 ,1000: 60, SIM.TSim: 60})
+SP = Path(SIM,{0: 0, 5: 60 ,1000: 60, SIM.TSim: 60})
 DV = Path(SIM,{0: 0, 5: 0, 1500:0, SIM.TSim: 0} )
 MAN = Path(SIM, {0: 0, 800:0, 900:0,SIM.TSim: 0})
 
@@ -32,30 +32,30 @@ FF = FeedForward(P,D)
 
 # PID Parametrers
 PID = PID_Controller(2,50,10,0.5,0,100,False)
-
+MVDelayD = []
 
 def plotValues(Kp,Kc,Ti,Td,alpha,OLP):
     
     for i in SIM.t:
         # Feed Forward
-        FF_RT(DV.Signal[:i-1], D.K, P.K, FF.T1p, FF.T1d, FF.T2p, FF.T2d , FF.D.Theta, FF.P.Theta, SIM.Ts, D.point_fct,SIM.PVinit,FF.MVFF_Delay,FF.MV_LL1,FF.MV_LL2 , FF.MV)
+        #FF_RT(DV.Signal[:i-1], D.K, P.K, FF.T1p, FF.T1d, FF.T2p, FF.T2d , FF.D.Theta, FF.P.Theta, SIM.Ts, D.point_fct,SIM.PVinit,FF.MVFF_Delay,FF.MV_LL1,FF.MV_LL2 , FF.MV)
 
         #PID
-        PID_RT(SP, PV, Man, MVMan, FF.MV, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MVP, MVI, MVD, E,OLP, ManFF,PVInit = 0, method='EBD-EBD')
+        #PID_RT(SP.Signal[:i-1], PV, MAN.Signal[:i-1], PID.MVMan, FF.MV, PID.Kc, PID.Ti, PID.Td, PID.alpha, SIM.Ts, PID.MVMin, PID.MVMax, PID.MV, PID.MVP, PID.MVI, PID.MVD, PID.E,PID.OLP, PID.ManFF,SIM.PVInit, method='EBD-EBD')
 
         #P(s) Processus
-        FO_RT(MV,Kp,Tp,Ts,PV_P,PVInit,method='EBD')
+        FO_RT(PID.MV,P.K,P.T,SIM.Ts,P.PV,SIM.PVInit,method='EBD')
 
         #D(s) Disturbance
-        Delay_RT(DV - DV0*np.ones_like(DV),ThetaD,Ts,MVDelayD,0)
-        FO_RT(MVDelayD,Kd,Td,Ts,PV_D,PVInit,method='EBD')
+        #Delay_RT(DV.Signal[:i-1] - D.point_fct*np.ones_like(DV.Signal[:i-1] ),D.Theta,SIM.Ts,MVDelayD)
+        #FO_RT(MVDelayD,D.K,D.T,SIM.Ts,D.PV,SIM.PVInit,method='EBD')
         
         
 
-        PV.append(PV_P[-1]+PV_D[-1] + PV0-Kp*MV0)
+        SIM.PV.append(P.PV[-1]+D.PV[-1] + P.point_fct-Kp*50)
     
     
-    return t,SP,PV,MV,DV,MVFF,[MVP,MVI,MVD]
+    return SIM.t,SP,PV,MV,DV,MVFF,[MVP,MVI,MVD]
 
 
 
