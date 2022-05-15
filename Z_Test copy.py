@@ -42,7 +42,7 @@ LL = LeadLag(SIM,10,10,10)
 
 FF = FeedForward(SIM,P,D)
 
-PID = PID_Controller(SIM,2,50,10,0.5,0,100,False,False)
+PID = PID_Controller(SIM,2,50,10,0.5,0,100,False,True)
 Delay_SP = Delay(SIM)
 
 t = []
@@ -69,7 +69,7 @@ SP = Signal(SP.Signal,'Set Point','-m')
 PIDMV = Signal(PID.MV,'MVFB','-c')
 DS = Signal(D.MV,'Disturabnce','-k')
 MVFF = Signal(FF.MV,'Feed Forward','-r')
-PV = Signal(SIM.PV,'Point Value','-g')
+PV = Signal(np.add(P.MV,D.MV),'Point Value','-g')
 FO_MV = Signal(P.MV,'First Order','-y')
 MAN = Signal(MAN.Signal,'Manual Mode','-b')
 #MAN_VAL = Signal(MAN_VAL.Signal,'Manual Mode value','-b')

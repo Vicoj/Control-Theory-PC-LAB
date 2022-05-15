@@ -16,6 +16,8 @@ class Simulation:
         self.N = int(TSim/Ts) + 1 
         self.PVInit = PVInit
         self.PV = []
+        self.MV = []
+
         self.t = self.calc_t()
 
     def calc_t(self):
@@ -29,19 +31,15 @@ class Path:
     def __init__(self,S:Simulation,path):
         self.S = S
         self.path = path
-        self.Signal = self.SelectPath_RT()
+        self.Signal = []
 
-    def SelectPath_RT(self):
-        signal = []
-        for i in range(0,len(self.S.t)):
-            for timeKey in self.path:
-                if(self.S.t[i-1] >= timeKey):
-                    timeKeyPrevious = timeKey    
-            
-            value = self.path[timeKeyPrevious]
-            signal.append(value)
-        
-        return signal
+    def RT(self,time):
+        for timeKey in self.path:
+            if(time[-1] >= timeKey):
+                timeKeyPrevious = timeKey    
+    
+        value = self.path[timeKeyPrevious]
+        self.Signal.append(value)
 
 class FirstOrder:
     def __init__(self,S:Simulation,gain,Time,Theta,point_fct):
@@ -51,88 +49,99 @@ class FirstOrder:
         self.Theta = Theta
         self.point_fct = point_fct
 
-        self.MV = []
+        self.PV = []
 
-    def FO_RT(self,input,method):
-        MV = []
-        temp = input
-        for i in range(0,len(self.S.t)):
-            input = temp[:i]
-            if (self.T != 0):
-                KFO = self.S.Ts/self.T
-                if len(MV) == 0:
-                    MV.append(self.S.PVInit)
-                else: # MV[k+1] is MV[-1] and MV[k] is MV[-2]
-                    if method == 'EBD':
-                        MV.append((1/(1+KFO))*MV[-1] + (KFO*self.K/(1+KFO))*input[-1])
-                    elif method == 'EFD':
-                        MV.append((1-KFO)*MV[-1] + KFO*self.K*input[-2])
-                    elif method == 'TRAP':
-                        MV.append((1/(2*self.T+self.S.Ts))*((2*self.T-self.S.Ts)*MV[-1] + self.K*self.S.Ts*(input[-1] + input[-2])))            
-                    else:
-                        MV.append((1/(1+KFO))*MV[-1] + (KFO*self.K/(1+KFO))*input[-1])
-            else:
-                MV.append(self.K*input[-1])
-        self.MV = MV
+    def RT(self,MV,method):
+        if (self.T != 0):
+            K = self.S.Ts/self.T
+            if len(self.PV) == 0:
+                self.PV.append(self.S.PVInit)
+            else: # MV[k+1] is MV[-1] and MV[k] is MV[-2]
+                if method == 'EBD':
+                    self.PV.append((1/(1+K))*self.PV[-1] + (K*self.K/(1+K))*MV[-1])
+                elif method == 'EFD':
+                    self.PV.append((1-K)*self.PV[-1] + K*self.K*MV[-2])
+                elif method == 'TRAP':
+                    self.PV.append((1/(2*self.T+self.S.Ts))*((2*self.T-self.S.Ts)*self.PV[-1] + self.K*self.S.Ts*(MV[-1] + MV[-2])))            
+                else:
+                    self.PV.append((1/(1+K))*self.PV[-1] + (K*self.K/(1+K))*MV[-1])
+        else:
+            self.PV.append(self.K*MV[-1])
+
 
 class LeadLag:
-    def __init__(self,S:Simulation, K,TLead,TLag):
+    def __init__(self,S:Simulation,K,TLead,TLag):
         self.S = S
         self.K = K
         self.TLead = TLead
         self.TLag = TLag
 
-        self.MV = []
+        self.PV = []
 
-    def LeadLag_RT(self,input,method):
-        MV = []
-        temp = input
-        for i in range(0,len(self.S.t)):
-            input = temp[:i+1]
-            if (self.TLag != 0):
-                KLL = self.S.Ts/self.TLag
-                if len(MV) == 0:
-                    MV.append(self.S.PVInit)
-                else: # MV[k+1] is MV[-1] and MV[k] is MV[-2]
-                    if method == 'EBD':
-                        MV.append((1/(1+KLL))*MV[-1] + (KLL*self.K/(1+KLL))*((1+self.TLead/self.S.Ts)*input[-1]- (self.TLead/self.S.Ts)*input[-2]))
-                    elif method == 'EFD':
-                        MV.append((1-KLL)*MV[-1] + (KLL*self.K)*((self.TLead/self.S.Ts)*input[-1] +(1-(self.TLead/self.S.Ts))*input[-2]))
-                    elif method == 'TRAP':
-                        "MV.append((1/(2*T+Ts))*((2*T-Ts)*MV[-1] + Kp*Ts*(input[-1] + input[-2])))"            
-                    else:
-                        MV.append((1/(1+KLL))*MV[-1] + (KLL*self.K/(1+KLL))*((1+self.TLead/self.S.Ts)*input[-1]- (self.TLead/self.S.Ts)*input[-2]))
-            else:
-                MV.append(self.K*input[-1])
-        self.MV = MV
+    def RT(self,MV,method):
+        if (self.TLag != 0):
+            K = self.S.Ts/self.TLag
+
+            if len(self.PV) == 0:
+                self.PV.append(self.S.PVInit)
+            else: 
+                if method == 'EBD':
+                    self.PV.append((1/(1+K))*self.PV[-1] + (K*self.K/(1+K))*((1+self.TLead/self.S.Ts)*MV[-1]- (self.TLead/self.S.Ts)*MV[-2]))
+                elif method == 'EFD':
+                    self.PV.append((1-K)*self.PV[-1] + (K*self.K)*((self.TLead/self.S.Ts)*MV[-1] +(1-(self.TLead/self.S.Ts))*MV[-2]))
+                elif method == 'TRAP':
+                    pass
+                else:
+                    self.PV.append((1/(1+K))*self.PV[-1] + (K*self.K/(1+K))*((1+self.TLead/self.S.Ts)*MV[-1]- (self.TLead/self.S.Ts)*MV[-2]))
+        else:
+            self.PV.append(self.K*MV[-1])
+
 
 class FeedForward:
-    def __init__(self,S:Simulation):
+    def __init__(self,S:Simulation,P:FirstOrder,D:FirstOrder):
         self.S = S
+        self.P = P
+        self.D = D
+
+        self.Kd = D.K
+        self.Kp = P.K
+
+        self.T1p = P.T
+        self.T1d = D.T
+        self.T2p = 1
+        self.T2d = 1
+
+        self.DV0 = D.point_fct
+
+        self.ThetaD = D.Theta
+        self.ThetaP = P.Theta
 
 
-        self.MV = []
-        self.MV_LL1 = []
-        self.MV_LL2 = []
-        self.MVFF_Delay = []
+        self.MVFF = []
+        #Gain
+        KFF = -(self.Kd/self.Kp) 
 
-    def FF_RT(self,P:FirstOrder ,D:FirstOrder ,method):
+        #Delay
+        thetaFF = np.max([self.ThetaD-self.ThetaP,0])
+        self.delayFF = Delay(S,thetaFF)
+        
+        #leadLag
+        self.LL1 = LeadLag(S,KFF,self.T1p,self.T1d)
+        self.LL2 = LeadLag(S,1,self.T2p,self.T2d)
 
-        KFF = -(D.K/P.K)
+    def RT(self,DV):
 
-        ThetaFF = np.max([D.Theta-P.Theta,0])
-        PVFF = D.MV-D.point_fct*np.ones_like(D.MV)
+        #Dephasage
+        PVFF = DV-self.DV0*np.ones_like(DV)
+        self.delayFF.RT(PVFF) 
+    
+        self.LL1.RT(self.delayFF.PV,'EBD')
+        self.LL2.RT(self.LL1.PV,'EBD')
+        
+    
+        self.MVFF.append(self.LL2.PV[-1])
 
-        Delay_FF = Delay(self.S)
-        Delay_FF.Delay_RT(PVFF,ThetaFF)
 
-        LL1 = LeadLag(self.S,KFF,P.T,D.T)
-        LL1.LeadLag_RT(Delay_FF.MV,method)
-
-        LL2 = LeadLag(self.S,1,1,1)
-        LL2.LeadLag_RT(LL1.MV,method)
-
-        self.MV = LL2.MV
 
 class PID_Controller:
     def __init__(self,S:Simulation,Kc,Ti,Td,alpha,MVMin,MVMax,OLP,ManFF):
@@ -146,106 +155,84 @@ class PID_Controller:
         self.OLP = OLP
         self.ManFF = ManFF
 
-        self.MVMan = []
+        self.MVMan = [80]
 
-        self.MV = []
+        self.MVFB = []
         self.MVP = []
         self.MVI = []
         self.MVD = []
         self.E = []
 
-    def PID_RT(self,SP,PV,MVMan,Man,MVFF,method):
-        #calcul de l'erreur SP-PV
-
-        self.MV = []
-        self.MVP = []
-        self.MVI = []
-        self.MVD = []
-        self.E = []
-
-        tempSP = SP
-        tempPV = PV
-        tempMVMan = MVMan
-        for i in range(0,len(self.S.t)):
-
-            SP = tempSP[:i+1]
-            PV = tempPV[:i+1]
-            MVMan = tempMVMan[:i+1]
-
-            if(not self.OLP):
-                if(len(PV)==0):
-                    self.E.append(SP[-1]-self.S.PVInit)
-                else :
-                    self.E.append(SP[-1]-PV[-1])
-            else:
-                self.E.append(SP[-1])
-
-            #calcul de MVp
-
-            self.MVP.append(self.Kc*self.E[-1])
-
-            #calcul MVi
-
-            if(len(self.MVI)>0):
-                self.MVI.append(self.MVI[-1]+(self.Kc*self.S.Ts*self.E[-1])/self.Ti)
+    def RT(self,SP,PV,MAN,MVMan,MVFF,method):
+        
+    #calcul de l'erreur SP-PV
+    
+        if(not self.OLP):
+            if(len(PV)==0):
+                self.E.append(SP[-1]-self.S.PVInit)
             else :
-                self.MVI.append(self.S.PVInit)
+                self.E.append(SP[-1]-PV[-1])
+        else:
+            self.E.append(SP[-1])
 
-            #calcul MVd
+        #calcul de MVp
 
-            Tfd = self.alpha*self.Td
-            if(self.Td>0):
-                if(len(self.MVD)!=0):
-                    if(len(self.E)==1):
-                        self.MVD.append((Tfd/(Tfd+self.S.Ts))*self.MVD[-1] + ((self.Kc*self.Td)/(Tfd+self.S.Ts))*(self.E[-1]))
-                    else:
-                        self.MVD.append(( Tfd / (Tfd+self.S.Ts) )*self.MVD[-1] + ( (self.Kc*self.Td) / (Tfd+self.S.Ts) ) *(self.E[-1]-self.E[-2]))
-                else :
-                    self.MVD.append(self.S.PVInit)
+        self.MVP.append(self.Kc*self.E[-1])
 
-            #calcul saturation, anti emballement, reset saturation integrateur
+        #calcul MVi
 
-            #mode automatique
-            if(not Man[-1]):
-                #saturation
-                if(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] < self.MVMin) :
-                    self.MVI[-1] = self.MVMin - self.MVP[-1] - self.MVD[-1] #ecrasement valeur de MV
-                elif (self.MVP[-1]+self.MVI[-1]+self.MVD[-1] >=self.MVMax) :
-                    self.MVI[-1] = self.MVMax - self.MVP[-1] - self.MVD[-1]
-                self.MV.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1])
+        if(len(self.MVI)>0):
+            self.MVI.append(self.MVI[-1]+(self.Kc*self.S.Ts*self.E[-1])/self.Ti)
+        else :
+            self.MVI.append(self.S.PVInit)
 
-            #mode manuel
-            else :
-                if(self.ManFF):
-                    self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]
+        #calcul MVd
+
+        Tfd = self.alpha*self.Td
+        if(self.Td>0):
+            if(len(self.MVD)!=0):
+                if(len(self.E)==1):
+                    self.MVD.append((Tfd/(Tfd+self.S.Ts))*self.MVD[-1] + ((self.Kc*self.Td)/(Tfd+self.S.Ts))*(self.E[-1]))
                 else:
-                    self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]-MVFF[-1]
+                    self.MVD.append(( Tfd / (Tfd+self.S.Ts) )*self.MVD[-1] + ( (self.Kc*self.Td) / (Tfd+self.S.Ts) ) *(self.E[-1]-self.E[-2]))
+            else :
+                self.MVD.append(self.S.PVInit)
 
-                self.MV.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1])
+        #calcul saturation, anti emballement, reset saturation integrateur
+
+        #mode automatique
+        #if(not MAN[-1]):
+            #saturation
+        if(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] <self.MVMin) :
+            self.MVI[-1] = self.MVMin - self.MVP[-1] - self.MVD[-1] #ecrasement valeur de MV
+        elif (self.MVP[-1]+self.MVI[-1]+self.MVD[-1] >=self.MVMax) :
+            self.MVI[-1] = self.MVMax - self.MVP[-1] - self.MVD[-1]
+        self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1])
+
+        #mode manuel
+        #else :
+        #    if(self.ManFF):
+        #        self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]
+        #    else:
+        #        self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]-MVFF[-1]
+#
+        #    self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1])
         
 
+
 class Delay:
-    def __init__(self,S:Simulation):
+    def __init__(self,S:Simulation,theta):
         self.S = S
-        self.theta = 0
         self.MVInit = 0 # Par Default
-
-        self.MV = []
-
-    def Delay_RT(self,Inputt,theta):
         self.theta = theta
-        input_delay = []
+        self.PV = []
 
-        for i in range(0,len(self.S.t)):
-            Input = Inputt[:i]
-
-            NDelay = int(np.ceil(theta/self.S.Ts))
-            if NDelay > len(Input)-1:
-                input_delay.append(self.MVInit)
-            else:    
-                input_delay.append(Input[-NDelay-1])
-
-        self.MV = input_delay
+    def RT(self,MV):
+        NDelay = int(np.ceil(self.theta/self.S.Ts))
+        if NDelay > len(MV)-1:
+            self.PV.append(self.MVInit)
+        else:    
+            self.PV.append(MV[-NDelay-1])
 
 class Signal:
     def __init__(self,Signal,name:Str(),color:Str()):
@@ -258,8 +245,7 @@ class Graph:
 
         self.title = title
         self.S = S
-        self.simList = []
-        self.fig, self.ax = plt.subplots(2)
+        self.fig, self.ax = plt.subplots(2, gridspec_kw={'height_ratios': [1, 3]})
 
     def show(self,signals:list(),binSignals:list()):
         
@@ -268,25 +254,24 @@ class Graph:
             self.ax[0].set_ylabel('Valeurs Binaires (On/Off)')
             self.ax[0].set_xlabel('Temps [s]')
             self.ax[0].set_title(self.title)
-            self.ax[0].set_ylim(-0.1,1.1)
             self.ax[0].legend(loc='best')
 
         for signal in signals:
             self.ax[1].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
             self.ax[1].set_ylabel('Temperature de Chauffe [%]')
             self.ax[1].set_xlabel('Temps [s]')
-            self.ax[1].set_ylim(-10,100)
+            #self.ax[1].set_ylim(-10,120)
             self.ax[1].legend(loc='best')
 
-        plt.subplots_adjust(left=0.1, bottom=0.3, right = 0.9)
+        plt.subplots_adjust(left=0.05, bottom=0.05, right = 0.8,top=0.95,hspace=0.064)
         # Buttons
-        saveax = plt.axes([0.9, 0.15, 0.05, 0.04])
+        saveax = plt.axes([0.93, 0.15, 0.05, 0.04]) #4-tuple of floats *rect* = [left, bottom, width, height]
         button_save = Button(saveax, 'Save', hovercolor='0.975')
 
-        namebox = plt.axes([0.75, 0.15, 0.15, 0.04])
-        self.text_box = TextBox(namebox, 'NAME :', initial='')
+        namebox = plt.axes([0.83, 0.15, 0.1, 0.04])
+        self.text_box = TextBox(namebox, 'Name :', initial='')
 
-        closefig = plt.axes([0.8, 0.05, 0.1, 0.04])
+        closefig = plt.axes([0.83, 0.05, 0.1, 0.04])
         button_close = Button(closefig, 'Close', hovercolor='0.975')
         button_close.on_clicked(self.close)
 
