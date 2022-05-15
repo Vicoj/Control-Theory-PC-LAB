@@ -45,7 +45,8 @@ LL = LeadLag(SIM,1,200,10)
 FF = FeedForward(SIM,P,D)
 
 #PID
-PID = PID_Controller(SIM,0.6,5,2,0.7,0,100,False,False)
+PID = PID_Controller(SIM,0.6,5,2,0.7,0,100,True,False)
+
 
 t = []
 for ti in SIM.t:
@@ -68,20 +69,17 @@ for ti in SIM.t:
     SIM.PV.append(P.PV[-1] + D.PV[-1]) # Point Value
     
 
-
-
-
 SigVals = [
-    Signal(SP.Signal,'Set Point','-r'),
-    Signal(DV.Signal,'Disturbance Value','-k'),
-    Signal(SIM.PV,'Point Value','-b'),
+    Signal(SP.Signal,'SP','-r'),
+    #Signal(DV.Signal,'DV','-k'),
+    Signal(SIM.PV,'PV','-b'),
 
     Signal(P.PV,'P(s)','--b'),
-    Signal(D.PV,'P(s)','--k'),
+    Signal(D.PV,'D(s)','--k'),
 
     Signal(FF.MVFF,'MVFF','-k'),
     Signal(PID.MVFB,'MVFB','-y'),
-    #Signal(PID.E,'Erreur',':r'),
+    #Signal(PID.E,'E',':r'),
     #Signal(PID.MVP,'MVP',':b'),
     #Signal(PID.MVI,'MVI',':y'),
     #Signal(PID.MVD,'MVD',':m'),
@@ -92,4 +90,5 @@ SigValsBin = [
     Signal(MAN.Signal,'Manual Mode','-g')
 ]
 
-G.show(SigVals,SigValsBin)
+#G.show(SigVals,SigValsBin)
+G.Bode(P,True)
