@@ -27,6 +27,9 @@ class Simulation:
 
         return t
 
+    def run(self):
+        pass
+
 class Path:
     def __init__(self,S:Simulation,path):
         self.S = S
@@ -34,6 +37,17 @@ class Path:
         self.Signal = []
 
     def RT(self,time):
+
+        """
+        The function "SelectPath_RT" needs to be included in a "for or while loop".
+
+        :path: dictionary input describing a path in time. Example: path = {0: 0, 5: 1, 50: 2, 80: 3, 100: 3}
+        :time: time vector.
+        :signal: signal vector that is being constructed using the input "path" and the vector "time".
+
+        The function "SelectPath_RT" takes the last element in the vector "time" and, given the input "path", it appends the correct value to the vector "signal".
+        """    
+
         for timeKey in self.path:
             if(time[-1] >= timeKey):
                 timeKeyPrevious = timeKey    
@@ -52,11 +66,30 @@ class FirstOrder:
         self.PV = []
 
     def RT(self,MV,method):
+
+        """
+        The function "FO_RT" needs to be included in a "for or while loop".
+
+        :MV: input vector
+        :Kp: process gain
+        :T: lag time constant [s]
+        :Ts: sampling period [s]
+        :PV: output vector
+        :PVInit: (optional: default value is 0)
+        :method: discretisation method (optional: default value is 'EBD')
+            EBD: Euler Backward difference
+            EFD: Euler Forward difference
+            TRAP: Trapezoïdal method
+
+        The function "FO_RT" appends a value to the output vector "PV".
+        The appended value is obtained from a recurrent equation that depends on the discretisation method.
+        """    
+
         if (self.T != 0):
             K = self.S.Ts/self.T
             if len(self.PV) == 0:
                 self.PV.append(self.S.PVInit)
-            else: # MV[k+1] is MV[-1] and MV[k] is MV[-2]
+            else:
                 if method == 'EBD':
                     self.PV.append((1/(1+K))*self.PV[-1] + (K*self.K/(1+K))*MV[-1])
                 elif method == 'EFD':
@@ -68,6 +101,51 @@ class FirstOrder:
         else:
             self.PV.append(self.K*MV[-1])
 
+class SecondOrderPlusDelay:
+    def __init__(self,S:Simulation,gain,Time,Theta,point_fct):
+        self.S = S
+        self.K = gain
+        self.T = Time
+        self.Theta = Theta
+        self.point_fct = point_fct
+
+        self.PV = []
+
+    def RT(self,MV,method):
+
+        """
+        The function "FO_RT" needs to be included in a "for or while loop".
+
+        :MV: input vector
+        :Kp: process gain
+        :T: lag time constant [s]
+        :Ts: sampling period [s]
+        :PV: output vector
+        :PVInit: (optional: default value is 0)
+        :method: discretisation method (optional: default value is 'EBD')
+            EBD: Euler Backward difference
+            EFD: Euler Forward difference
+            TRAP: Trapezoïdal method
+
+        The function "FO_RT" appends a value to the output vector "PV".
+        The appended value is obtained from a recurrent equation that depends on the discretisation method.
+        """    
+
+        if (self.T != 0):
+            K = self.S.Ts/self.T
+            if len(self.PV) == 0:
+                self.PV.append(self.S.PVInit)
+            else:
+                if method == 'EBD':
+                    self.PV.append((1/(1+K))*self.PV[-1] + (K*self.K/(1+K))*MV[-1])
+                elif method == 'EFD':
+                    self.PV.append((1-K)*self.PV[-1] + K*self.K*MV[-2])
+                elif method == 'TRAP':
+                    self.PV.append((1/(2*self.T+self.S.Ts))*((2*self.T-self.S.Ts)*self.PV[-1] + self.K*self.S.Ts*(MV[-1] + MV[-2])))            
+                else:
+                    self.PV.append((1/(1+K))*self.PV[-1] + (K*self.K/(1+K))*MV[-1])
+        else:
+            self.PV.append(self.K*MV[-1])
 
 class LeadLag:
     def __init__(self,S:Simulation,K,TLead,TLag):
@@ -95,7 +173,6 @@ class LeadLag:
                     self.PV.append((1/(1+K))*self.PV[-1] + (K*self.K/(1+K))*((1+self.TLead/self.S.Ts)*MV[-1]- (self.TLead/self.S.Ts)*MV[-2]))
         else:
             self.PV.append(self.K*MV[-1])
-
 
 class FeedForward:
     def __init__(self,S:Simulation,P:FirstOrder,D:FirstOrder):
@@ -140,8 +217,6 @@ class FeedForward:
         
     
         self.MVFF.append(self.LL2.PV[-1])
-
-
 
 class PID_Controller:
     def __init__(self,S:Simulation,Kc,Ti,Td,alpha,MVMin,MVMax,OLP,ManFF):
@@ -201,25 +276,23 @@ class PID_Controller:
         #calcul saturation, anti emballement, reset saturation integrateur
 
         #mode automatique
-        #if(not MAN[-1]):
+        if(not MAN[-1]):
             #saturation
-        if(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] <self.MVMin) :
-            self.MVI[-1] = self.MVMin - self.MVP[-1] - self.MVD[-1] #ecrasement valeur de MV
-        elif (self.MVP[-1]+self.MVI[-1]+self.MVD[-1] >=self.MVMax) :
-            self.MVI[-1] = self.MVMax - self.MVP[-1] - self.MVD[-1]
-        self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1])
+            if(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] <self.MVMin) :
+                self.MVI[-1] = self.MVMin - self.MVP[-1] - self.MVD[-1] #ecrasement valeur de MV
+            elif (self.MVP[-1]+self.MVI[-1]+self.MVD[-1] >=self.MVMax) :
+                self.MVI[-1] = self.MVMax - self.MVP[-1] - self.MVD[-1]
+            self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1])
 
         #mode manuel
-        #else :
-        #    if(self.ManFF):
-        #        self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]
-        #    else:
-        #        self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]-MVFF[-1]
-#
-        #    self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1])
+        else :
+            if(self.ManFF):
+                self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]
+            else:
+                self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]-MVFF[-1]
+
+            self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1])
         
-
-
 class Delay:
     def __init__(self,S:Simulation,theta):
         self.S = S
@@ -228,6 +301,22 @@ class Delay:
         self.PV = []
 
     def RT(self,MV):
+
+        """
+        The function "Delay_RT" needs to be included in a "for or while loop".
+
+        :MV: input vector
+        :theta: delay [s]
+        :Ts: sampling period [s]
+        :MV_Delay: delayed input vector
+        :MVInit: (optional: default value is 0)
+
+        The function "Delay_RT" appends a value to the vector "MV_Delay".
+        The appended value corresponds to the value in the vector "MV" "theta" seconds ago.
+        If "theta" is not a multiple of "Ts", "theta" is replaced by Ts*int(np.ceil(theta/Ts)), i.e. the closest multiple of "Ts" larger than "theta".
+        If the value of the vector "input" "theta" seconds ago is not defined, the value "MVInit" is used.
+        """
+
         NDelay = int(np.ceil(self.theta/self.S.Ts))
         if NDelay > len(MV)-1:
             self.PV.append(self.MVInit)
@@ -245,10 +334,13 @@ class Graph:
 
         self.title = title
         self.S = S
-        self.fig, self.ax = plt.subplots(2, gridspec_kw={'height_ratios': [1, 3]})
+        
 
     def show(self,signals:list(),binSignals:list()):
-        
+        self.fig, self.ax = plt.subplots(2, gridspec_kw={'height_ratios': [1, 3]})
+        self.signals = signals
+        self.binSignals = binSignals
+
         for bin in binSignals:
             self.ax[0].step(self.S.t,bin.Signal,bin.color,linewidth=2,label=bin.name,where='post')
             self.ax[0].set_ylabel('Valeurs Binaires (On/Off)')
@@ -267,6 +359,7 @@ class Graph:
         # Buttons
         saveax = plt.axes([0.93, 0.15, 0.05, 0.04]) #4-tuple of floats *rect* = [left, bottom, width, height]
         button_save = Button(saveax, 'Save', hovercolor='0.975')
+        button_save.on_clicked(self.save)
 
         namebox = plt.axes([0.83, 0.15, 0.1, 0.04])
         self.text_box = TextBox(namebox, 'Name :', initial='')
@@ -285,17 +378,121 @@ class Graph:
         self.fig.savefig("Output/"+self.text_box.text)
         now = datetime.now()
         date_time = now.strftime("%Y-%m-%d-%Hh%M")
-        t = np.array(t)
-        MV = np.array(MV)
-        PV = np.array(PV)
-        DV = np.array(DV)
-        my_data = np.vstack((t.T,MV.T,PV.T,DV.T))
+        t = np.array(self.S.t)
+        data = [t.T]
+        data_names ='t,'
+
+        for sig in self.signals:
+            arr = np.array(sig.Signal)
+            data.append(arr.T)
+            data_names += sig.name + ','
+
+        for bin in self.binSignals:
+            arr = np.array(bin.Signal)
+            data.append(arr.T)
+            data_names += bin.name + ','
+        
+        my_data = np.vstack((data))
         my_data = my_data.T
+
+
         nameFile = 'Data/PID_Graph_' + self.text_box.text + '_' + date_time + '.txt'
         if not os.path.exists('Data'):
             os.makedirs('Data')
-        np.savetxt(nameFile,my_data,delimiter=',',header='t,MV,PV,DV',comments='')
+        np.savetxt(nameFile,my_data,delimiter=',',header=data_names,comments='')
                    
 
     def close(self,event):
         plt.close()
+
+    def Bode(self,P:FirstOrder, Show = True):
+    
+        """
+        :P: Process as defined by the class "Process".
+            Use the following command to define the default process which is simply a unit gain process:
+                P = Process({})
+
+            A delay, two lead time constants and 2 lag constants can be added.
+
+            Use the following commands for a SOPDT process:
+                P.parameters['Kp'] = 1.1
+                P.parameters['Tlag1'] = 10.0
+                P.parameters['Tlag2'] = 2.0
+                P.parameters['theta'] = 2.0
+
+            Use the following commands for a unit gain Lead-lag process:
+                P.parameters['Tlag1'] = 10.0        
+                P.parameters['Tlead1'] = 15.0        
+
+        :omega: frequency vector (rad/s); generated by a command of the type "omega = np.logspace(-2, 2, 10000)".
+        :Show: boolean value (optional: default value = True). If Show = True, the Bode diagram is shown. Otherwise Ps (P(j omega)) (vector of complex numbers) is returned.
+
+        The function "Bode" generates the Bode diagram of the process P
+        """     
+
+        omega = np.logspace(-2, 2, 10000)
+        s = 1j*omega
+        
+        Ptheta = np.exp(-P.Theta*s)
+        PGain = P.K*np.ones_like(Ptheta)
+        PLag1 = 1/(P.T*s + 1)
+        PLag2 = 1/(1*s + 1)
+        PLead1 = 1*s + 1
+        PLead2 = 1*s + 1
+        
+        Ps = np.multiply(Ptheta,PGain)
+        Ps = np.multiply(Ps,PLag1)
+        Ps = np.multiply(Ps,PLag2)
+        Ps = np.multiply(Ps,PLead1)
+        Ps = np.multiply(Ps,PLead2)
+        
+        if Show == True:
+        
+            fig, (ax_gain, ax_phase) = plt.subplots(2,1)
+            fig.set_figheight(12)
+            fig.set_figwidth(22)
+
+            # Gain part
+            ax_gain.semilogx(omega,20*np.log10(np.abs(Ps)),label='P(s)')
+            ax_gain.semilogx(omega,20*np.log10(np.abs(PGain)),label='Pgain')
+            if P.Theta > 0:
+                ax_gain.semilogx(omega,20*np.log10(np.abs(Ptheta)),label='Ptheta(s)')
+            if P.T > 0:
+                ax_gain.semilogx(omega,20*np.log10(np.abs(PLag1)),label='PLag1(s)')
+            if 0 > 0:        
+                ax_gain.semilogx(omega,20*np.log10(np.abs(PLag2)),label='PLag2(s)')
+            if 0 > 0:        
+                ax_gain.semilogx(omega,20*np.log10(np.abs(PLead1)),label='PLead1(s)')
+            if 0 > 0:    
+                ax_gain.semilogx(omega,20*np.log10(np.abs(PLead2)),label='PLead2(s)')    
+            gain_min = np.min(20*np.log10(np.abs(Ps)/5))
+            gain_max = np.max(20*np.log10(np.abs(Ps)*5))
+            ax_gain.set_xlim([np.min(omega), np.max(omega)])
+            ax_gain.set_ylim([gain_min, gain_max])
+            ax_gain.set_ylabel('Amplitude |P| [db]')
+            ax_gain.set_title('Bode plot of P')
+            ax_gain.legend(loc='best')
+        
+            # Phase part
+            ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ps)),label='P(s)')
+            ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PGain)),label='Pgain')
+            if P.Theta > 0:    
+                ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ptheta)),label='Ptheta(s)')
+            if P.T > 0:        
+                ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PLag1)),label='PLag1(s)')
+            if 1 > 0:        
+                ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PLag2)),label='PLag2(s)')
+            if 1> 0:        
+                ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PLead1)),label='PLead1(s)')
+            if 1 > 0:        
+                ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PLead2)),label='PLead2(s)')    
+            ax_phase.set_xlim([np.min(omega), np.max(omega)])
+            ph_min = np.min((180/np.pi)*np.unwrap(np.angle(Ps))) - 10
+            ph_max = np.max((180/np.pi)*np.unwrap(np.angle(Ps))) + 10
+            ax_phase.set_ylim([np.max([ph_min, -200]), ph_max])
+            ax_phase.set_ylabel(r'Phase $\angle P$ [°]')
+            ax_phase.legend(loc='best')
+
+            plt.show()
+        else:
+            return Ps
