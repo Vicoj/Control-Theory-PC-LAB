@@ -1,3 +1,4 @@
+from signal import signal
 from tokenize import Single
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,7 +28,8 @@ G = Graph(SIM,'PID Control')
 # Path for Every Signal
 SP = Path(SIM,{0: 0, 5: 60 ,1000: 0, SIM.TSim: 0})
 DV = Path(SIM,{0: 0, 500: 50, 1500:0, SIM.TSim: 0} )
-MAN = Path(SIM, {0: 0, 800:0, 900:0,SIM.TSim: 0})
+MAN = Path(SIM, {0: 0, 800:1, 900:0,SIM.TSim: 0})
+MAN_VAL = Path(SIM, {0: 80,SIM.TSim: 80})
 
 # FO Process
 P = FirstOrder(SIM,0.654997667761135,141.9367358894029,6.678212203596281,50)
@@ -42,12 +44,16 @@ FF = FeedForward(SIM)
 PID = PID_Controller(SIM,2,60,10,0.6,0,100,True,False)
 Delay_SP = Delay(SIM)
 
-Delay_SP.Delay_RT(SP.Signal,80)
-P.FO_RT(Delay_SP.MV,'EBD')
-D.FO_RT(DV.Signal,'EBD')
-LL.LeadLag_RT(P.MV,'EBD')
-FF.FF_RT(P,D,'EBD')
-PID.PID_RT(SP.Signal,DV.Signal,MAN.Signal,MAN.Signal,FF.MV,'EBD-EBD')
+G.simList = [
+    #Delay_SP.Delay_RT(SP.Signal,80),
+    FF.FF_RT(P,D,'EBD'),
+    PID.PID_RT(SP.Signal,DV.Signal,MAN.Signal,MAN_VAL.Signal,FF.MV,'EBD-EBD'),
+    P.FO_RT(PID.MV,'EBD'),
+    D.FO_RT(DV.Signal,'EBD'),
+    #LL.LeadLag_RT(P.MV,'EBD'),
+    
+]
+
 
 SP = Signal(SP.Signal,'Set Point','-m')
 PIDMV = Signal(PID.MV,'MVFB','-c')
@@ -55,5 +61,7 @@ DS = Signal(D.MV,'Disturabnce','-k')
 MVFF = Signal(FF.MV,'Feed Forward','-r')
 PV = Signal(np.add(P.MV,D.MV),'Point Value','-g')
 FO_MV = Signal(P.MV,'First Order','-y')
+MAN = Signal(MAN.Signal,'Manual Mode','-b')
+MAN_VAL = Signal(MAN_VAL.Signal,'Manual Mode value','-b')
 
-G.show([PV,FO_MV,DS,SP])
+G.show([PV,FO_MV,DS,SP,MAN_VAL,PIDMV],[MAN])

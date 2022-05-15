@@ -13,8 +13,11 @@ from package_DBR import *
 import package_Advanced
 from package_Advanced import *
 
+import package_Class
+from package_Class import *
+
 #Simulation Instance
-SIM = Simulation(2000,1)
+SIM = Simulation(2000,1,0)
 
 # Path for Every Signal
 SP = Path(SIM,{0: 0, 5: 60 ,1000: 60, SIM.TSim: 60})
@@ -169,7 +172,7 @@ button_close.on_clicked(close)
 
 
 #Full screen
-manager = plt.get_current_fig_manager()
+manager = plt.get_current_fig_manager().full_screen_toggle()
 manager.full_screen_toggle()
 
 # Creating legend with color box

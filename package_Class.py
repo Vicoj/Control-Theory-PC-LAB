@@ -1,11 +1,12 @@
 from ast import Str
 from xmlrpc.client import Boolean
 import numpy as np
-
+from matplotlib import colors as mcolors
+from matplotlib.widgets import Slider, Button, RadioButtons,TextBox,CheckButtons
 import matplotlib.pyplot as plt
 from IPython.display import display, clear_output
-
-
+from datetime import datetime
+import os
 
 
 class Simulation:
@@ -251,20 +252,65 @@ class Signal:
         self.Signal = Signal
         self.name = name
         self.color = color
+
 class Graph:
     def __init__(self,S:Simulation,title):
+
         self.title = title
         self.S = S
-        self.fig, self.ax1 = plt.subplots()
-        self.fig.set_figheight(10)
-        self.fig.set_figwidth(15)
+        self.simList = []
+        self.fig, self.ax = plt.subplots(2)
 
-    def show(self,signals:list()):
+    def show(self,signals:list(),binSignals:list()):
+        
+        for bin in binSignals:
+            self.ax[0].step(self.S.t,bin.Signal,bin.color,linewidth=2,label=bin.name,where='post')
+            self.ax[0].set_ylabel('Valeurs Binaires (On/Off)')
+            self.ax[0].set_xlabel('Temps [s]')
+            self.ax[0].set_title(self.title)
+            self.ax[0].set_ylim(-0.1,1.1)
+            self.ax[0].legend(loc='best')
+
         for signal in signals:
-            l1, = self.ax1.step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
-            self.ax1.set_ylabel('Temperature de Chauffe [%]')
-            self.ax1.set_xlabel('Temps [s]')
-            self.ax1.set_title(self.title)
-            self.ax1.legend(loc='best')
+            self.ax[1].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
+            self.ax[1].set_ylabel('Temperature de Chauffe [%]')
+            self.ax[1].set_xlabel('Temps [s]')
+            self.ax[1].set_ylim(-10,100)
+            self.ax[1].legend(loc='best')
 
+        plt.subplots_adjust(left=0.1, bottom=0.3, right = 0.9)
+        # Buttons
+        saveax = plt.axes([0.9, 0.15, 0.05, 0.04])
+        button_save = Button(saveax, 'Save', hovercolor='0.975')
+
+        namebox = plt.axes([0.75, 0.15, 0.15, 0.04])
+        self.text_box = TextBox(namebox, 'NAME :', initial='')
+
+        closefig = plt.axes([0.8, 0.05, 0.1, 0.04])
+        button_close = Button(closefig, 'Close', hovercolor='0.975')
+        button_close.on_clicked(self.close)
+
+
+        plt.get_current_fig_manager().full_screen_toggle()
         plt.show()
+
+
+    def save(self,event):
+
+        self.fig.savefig("Output/"+self.text_box.text)
+        now = datetime.now()
+        date_time = now.strftime("%Y-%m-%d-%Hh%M")
+        t = np.array(t)
+        MV = np.array(MV)
+        PV = np.array(PV)
+        DV = np.array(DV)
+        my_data = np.vstack((t.T,MV.T,PV.T,DV.T))
+        my_data = my_data.T
+        nameFile = 'Data/PID_Graph_' + self.text_box.text + '_' + date_time + '.txt'
+        if not os.path.exists('Data'):
+            os.makedirs('Data')
+        np.savetxt(nameFile,my_data,delimiter=',',header='t,MV,PV,DV',comments='')
+                   
+
+    def close(self,event):
+        plt.close()
