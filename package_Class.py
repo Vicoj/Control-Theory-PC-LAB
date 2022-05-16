@@ -1,5 +1,7 @@
 from ast import Str
+from cProfile import label
 from xmlrpc.client import Boolean
+from cv2 import inRange
 import numpy as np
 from matplotlib import colors as mcolors
 from matplotlib.widgets import Slider, Button, RadioButtons,TextBox,CheckButtons
@@ -7,6 +9,7 @@ import matplotlib.pyplot as plt
 from IPython.display import display, clear_output
 from datetime import datetime
 import os
+
 
 
 class Simulation:
@@ -329,6 +332,11 @@ class Signal:
         self.name = name
         self.color = color
 
+class Variable:
+    def __init__(self,var,name:Str()):
+        self.var = var
+        self.name = name
+
 class Graph:
     def __init__(self,S:Simulation,title):
 
@@ -336,26 +344,49 @@ class Graph:
         self.S = S
         
 
-    def show(self,signals:list(),binSignals:list()):
-        self.fig, self.ax = plt.subplots(2, gridspec_kw={'height_ratios': [1, 3]})
+    def show(self,signals:list(),binSignals:list(),varVals:list(),step):
+        self.step = step
+        self.fig, self.ax = plt.subplots(3, gridspec_kw={'height_ratios': [1, 3,3]})
         self.signals = signals
         self.binSignals = binSignals
+        self.varVals = varVals
 
         for bin in binSignals:
             self.ax[0].step(self.S.t,bin.Signal,bin.color,linewidth=2,label=bin.name,where='post')
-            self.ax[0].set_ylabel('Valeurs Binaires (On/Off)')
-            self.ax[0].set_xlabel('Temps [s]')
-            self.ax[0].set_title(self.title)
-            self.ax[0].legend(loc='best')
+        self.ax[0].set_ylabel('Valeurs Binaires (On/Off)')
+        self.ax[0].set_xlabel('Temps [s]')
+        self.ax[0].set_title(self.title)
+        self.ax[0].legend(loc='best')
 
-        for signal in signals:
+        for signal in signals[0]:
             self.ax[1].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
-            self.ax[1].set_ylabel('Temperature de Chauffe [%]')
-            self.ax[1].set_xlabel('Temps [s]')
-            #self.ax[1].set_ylim(-10,120)
-            self.ax[1].legend(loc='best')
+        self.ax[1].set_ylabel('Temperature de Chauffe [%]')
+        self.ax[1].set_xlabel('Temps [s]')
+        #self.ax[1].set_ylim(-10,120)
+        self.ax[1].legend(loc='best')
+
+        for signal in signals[1]:
+            self.ax[2].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
+        self.ax[2].set_ylabel('Temperature de Chauffe [%]')
+        self.ax[2].set_xlabel('Temps [s]')
+        #self.ax[1].set_ylim(-10,120)
+        self.ax[2].legend(loc='best')
 
         plt.subplots_adjust(left=0.05, bottom=0.05, right = 0.8,top=0.95,hspace=0.064)
+
+        self.boxes = []
+        i = 0.9
+        for var in varVals:
+            varbox = plt.axes([0.87,i , 0.05, 0.04])
+            textVar =  TextBox(varbox, var.name+': ', initial=str(var.var))
+            i -= 0.05
+            textVar.on_submit(self.update)
+
+            self.boxes.append(textVar)
+
+
+    
+
         # Buttons
         saveax = plt.axes([0.93, 0.15, 0.05, 0.04]) #4-tuple of floats *rect* = [left, bottom, width, height]
         button_save = Button(saveax, 'Save', hovercolor='0.975')
@@ -368,10 +399,33 @@ class Graph:
         button_close = Button(closefig, 'Close', hovercolor='0.975')
         button_close.on_clicked(self.close)
 
-
         plt.get_current_fig_manager().full_screen_toggle()
         plt.show()
 
+    def update(self,event):
+        pass
+        #i=0
+        #for box in self.boxes:
+        #    self.varVals[i].var = float(box.text)
+        #    print(self.varVals[i].var)
+#
+        #self.step.run()
+        #self.ax[1].clear()
+        #self.ax[2].clear()
+        #
+        #for signal in self.signals[0]:
+        #    self.ax[1].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
+        #for signal in self.signals[1]:
+        #    self.ax[1].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
+#
+        #self.fig.canvas.draw()
+        #self.fig.canvas.flush_events()
+
+
+            
+
+    def saveFig(self,event):
+        self.fig.savefig("Output/"+self.text_box.text)
 
     def save(self,event):
 
@@ -382,7 +436,12 @@ class Graph:
         data = [t.T]
         data_names ='t,'
 
-        for sig in self.signals:
+        for sig in self.signals[0]:
+            arr = np.array(sig.Signal)
+            data.append(arr.T)
+            data_names += sig.name + ','
+
+        for sig in self.signals[1]:
             arr = np.array(sig.Signal)
             data.append(arr.T)
             data_names += sig.name + ','
@@ -401,7 +460,6 @@ class Graph:
             os.makedirs('Data')
         np.savetxt(nameFile,my_data,delimiter=',',header=data_names,comments='')
                    
-
     def close(self,event):
         plt.close()
 
@@ -430,7 +488,7 @@ class Graph:
         The function "Bode" generates the Bode diagram of the process P
         """     
 
-        omega = np.logspace(-2, 2, 10000)
+        omega = np.logspace(-4, 4, 10000)
         s = 1j*omega
         
         Ptheta = np.exp(-P.Theta*s)
@@ -440,59 +498,95 @@ class Graph:
         PLead1 = 1*s + 1
         PLead2 = 1*s + 1
         
+        
         Ps = np.multiply(Ptheta,PGain)
         Ps = np.multiply(Ps,PLag1)
         Ps = np.multiply(Ps,PLag2)
         Ps = np.multiply(Ps,PLead1)
         Ps = np.multiply(Ps,PLead2)
+
+        Gain_3Dby = np.array([-3]*len(omega))
+
         
         if Show == True:
         
-            fig, (ax_gain, ax_phase) = plt.subplots(2,1)
-            fig.set_figheight(12)
-            fig.set_figwidth(22)
+            self.fig, (ax_gain, ax_phase) = plt.subplots(2,1)
 
             # Gain part
-            ax_gain.semilogx(omega,20*np.log10(np.abs(Ps)),label='P(s)')
-            ax_gain.semilogx(omega,20*np.log10(np.abs(PGain)),label='Pgain')
+            ax_gain.plot(omega,20*np.log10(np.abs(Ps)),label='P(s)')
+            ax_gain.plot(omega,20*np.log10(np.abs(PGain)),label='Pgain')
             if P.Theta > 0:
-                ax_gain.semilogx(omega,20*np.log10(np.abs(Ptheta)),label='Ptheta(s)')
+                ax_gain.plot(omega,20*np.log10(np.abs(Ptheta)),label='Ptheta(s)')
             if P.T > 0:
-                ax_gain.semilogx(omega,20*np.log10(np.abs(PLag1)),label='PLag1(s)')
-            if 0 > 0:        
-                ax_gain.semilogx(omega,20*np.log10(np.abs(PLag2)),label='PLag2(s)')
-            if 0 > 0:        
-                ax_gain.semilogx(omega,20*np.log10(np.abs(PLead1)),label='PLead1(s)')
-            if 0 > 0:    
-                ax_gain.semilogx(omega,20*np.log10(np.abs(PLead2)),label='PLead2(s)')    
+                ax_gain.plot(omega,20*np.log10(np.abs(PLag1)),label='PLag1(s)')
+
             gain_min = np.min(20*np.log10(np.abs(Ps)/5))
             gain_max = np.max(20*np.log10(np.abs(Ps)*5))
+
+            ax_gain.plot(omega,Gain_3Dby,label='-3Db',color='k')
+            ax_gain.plot(np.array([0]*len(Ps)),Gain_3Dby,label='Zero')
+            
+
+            
+
             ax_gain.set_xlim([np.min(omega), np.max(omega)])
             ax_gain.set_ylim([gain_min, gain_max])
             ax_gain.set_ylabel('Amplitude |P| [db]')
             ax_gain.set_title('Bode plot of P')
             ax_gain.legend(loc='best')
-        
+            ax_gain.set_xscale("log")
+
+            Gain_180y = np.array([-180]*len(Ps))
+
             # Phase part
             ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ps)),label='P(s)')
             ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PGain)),label='Pgain')
             if P.Theta > 0:    
                 ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ptheta)),label='Ptheta(s)')
             if P.T > 0:        
-                ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PLag1)),label='PLag1(s)')
-            if 1 > 0:        
-                ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PLag2)),label='PLag2(s)')
-            if 1> 0:        
-                ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PLead1)),label='PLead1(s)')
-            if 1 > 0:        
-                ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PLead2)),label='PLead2(s)')    
+                ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PLag1)),label='PLag1(s)')  
+
+            ax_phase.semilogx(omega,Gain_180y,label='-180°',color='k')
+
             ax_phase.set_xlim([np.min(omega), np.max(omega)])
             ph_min = np.min((180/np.pi)*np.unwrap(np.angle(Ps))) - 10
             ph_max = np.max((180/np.pi)*np.unwrap(np.angle(Ps))) + 10
+
             ax_phase.set_ylim([np.max([ph_min, -200]), ph_max])
             ax_phase.set_ylabel(r'Phase $\angle P$ [°]')
             ax_phase.legend(loc='best')
 
+            val1 = 20*np.log10(np.abs(Ptheta))
+            val2 = Gain_3Dby
+            idx = np.argwhere(np.diff(np.sign(val1 - val2))).flatten()
+            print(idx)
+            print(omega[idx],val1[idx])
+
+
+
+
+
+
+
+
+
+
+
+            plt.subplots_adjust(left=0.05, bottom=0.05, right = 0.8,top=0.95,hspace=0.064)
+
+            namebox = plt.axes([0.83, 0.15, 0.1, 0.04])
+            self.text_box = TextBox(namebox, 'Name :', initial='')
+
+            saveax = plt.axes([0.93, 0.15, 0.05, 0.04]) #4-tuple of floats *rect* = [left, bottom, width, height]
+            button_save = Button(saveax, 'Save', hovercolor='0.975')
+            button_save.on_clicked(self.saveFig)
+
+            closefig = plt.axes([0.83, 0.05, 0.1, 0.04])
+            button_close = Button(closefig, 'Close', hovercolor='0.975')
+            button_close.on_clicked(self.close)
+
+            
+            plt.get_current_fig_manager().full_screen_toggle()
             plt.show()
         else:
             return Ps
