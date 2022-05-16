@@ -1,7 +1,6 @@
 from ast import Str
 from cProfile import label
 from xmlrpc.client import Boolean
-from cv2 import inRange
 import numpy as np
 from matplotlib import colors as mcolors
 from matplotlib.widgets import Slider, Button, RadioButtons,TextBox,CheckButtons
@@ -9,6 +8,8 @@ import matplotlib.pyplot as plt
 from IPython.display import display, clear_output
 from datetime import datetime
 import os
+import tclab
+
 
 
 
@@ -30,8 +31,6 @@ class Simulation:
 
         return t
 
-    def run(self):
-        pass
 
 class Path:
     def __init__(self,S:Simulation,path):
@@ -326,6 +325,29 @@ class Delay:
         else:    
             self.PV.append(MV[-NDelay-1])
 
+class LabValues:
+    def __init__(self,S:Simulation,LAB):
+        self.S = S
+        self.LAB = LAB
+        self.S.PVInit = self.LAB.T1
+        self.Ps = []
+        self.Ds = []
+
+
+    def RT(self,MV,DV):
+
+        self.LAB.Q1(MV[-1])
+        self.LAB.Q2(DV[-1])
+
+        self.Ps.append(self.LAB.T1)
+        self.Ds.append(self.LAB.T2)
+
+        self.S.PV.append(self.Ps[-1]+self.Ds[-1])
+
+    
+
+
+
 class Signal:
     def __init__(self,Signal,name:Str(),color:Str()):
         self.Signal = Signal
@@ -344,8 +366,7 @@ class Graph:
         self.S = S
         
 
-    def show(self,signals:list(),binSignals:list(),varVals:list(),step):
-        self.step = step
+    def show(self,signals:list(),binSignals:list(),varVals:list()):
         self.fig, self.ax = plt.subplots(3, gridspec_kw={'height_ratios': [1, 3,3]})
         self.signals = signals
         self.binSignals = binSignals
@@ -358,16 +379,18 @@ class Graph:
         self.ax[0].set_title(self.title)
         self.ax[0].legend(loc='best')
 
+
         for signal in signals[0]:
-            self.ax[1].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
-        self.ax[1].set_ylabel('Temperature de Chauffe [%]')
+            self.ax1, =self.ax[1].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
+        self.ax[1].set_ylabel('Temperature [°C]')
         self.ax[1].set_xlabel('Temps [s]')
         #self.ax[1].set_ylim(-10,120)
         self.ax[1].legend(loc='best')
 
         for signal in signals[1]:
-            self.ax[2].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
-        self.ax[2].set_ylabel('Temperature de Chauffe [%]')
+            self.ax2 =self.ax[2].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
+
+        self.ax[2].set_ylabel('Pourcentage de Chauffe [%]')
         self.ax[2].set_xlabel('Temps [s]')
         #self.ax[1].set_ylim(-10,120)
         self.ax[2].legend(loc='best')
@@ -380,7 +403,7 @@ class Graph:
             varbox = plt.axes([0.87,i , 0.05, 0.04])
             textVar =  TextBox(varbox, var.name+': ', initial=str(var.var))
             i -= 0.05
-            textVar.on_submit(self.update)
+            #textVar.on_submit(self.update)
 
             self.boxes.append(textVar)
 
@@ -410,17 +433,19 @@ class Graph:
         #    print(self.varVals[i].var)
 #
         #self.step.run()
-        #self.ax[1].clear()
-        #self.ax[2].clear()
-        #
+#
+        #i=0
         #for signal in self.signals[0]:
-        #    self.ax[1].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
+        #    self.ax1[i] = signal.Signal
+        #    i+=1
+        #i=0
         #for signal in self.signals[1]:
-        #    self.ax[1].step(self.S.t,signal.Signal,signal.color,linewidth=2,label=signal.name,where='post')
+        #    self.ax2[i] = signal.Signal
+        #    i+=1
 #
         #self.fig.canvas.draw()
         #self.fig.canvas.flush_events()
-
+#
 
             
 
