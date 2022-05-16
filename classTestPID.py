@@ -87,7 +87,6 @@ SigVals2 = [
 SigValsBin = [
     Signal(MAN.Signal,'Manual Mode','-g')
 ]
-
 varVals = [
     Variable(PID.Kc,'Gain PID'),
     Variable(PID.Td,'Td PID'),
