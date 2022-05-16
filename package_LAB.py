@@ -64,25 +64,27 @@ def PID_RT(SP, PV, Man, MVMan, MVFF, Kc, Ti, Td, alpha, Ts, MVMin, MVMax, MV, MV
     
     return None
 
-def IMC_tuning(MV,Kp,T,Ts, T1p ,Theta, gamma, case="H", T1=0, T2=0, T3=0):
-    Ti = 1
-    Td = 1
-    Kc = 1
-    Tc = gamma*T1p
-    #à modifier
+def IMC_tuning(MV,Kp,Ts, T1p ,Theta, gamma, case="H", T1=1, T2=1, T3=1):
+    #theta process
+    #Kp gain process
+    #T1p = time constant process
+    #gamma for desired closed loop time constant
+    #
+    
+    Tc = gamma*T1p # 0.2 <gamma< 0.9
+    
     if case == "G" :
-        Kc = T/(Kp*Tc+Theta)
+        Kc = T1p/(Kp*Tc+Theta)
         Ti = T+Theta/2
         Td = 0
     if case == "H" :
-        Kc = (T+Theta/2)/(Kp*Tc+Theta/2)
-        Ti = T+Theta/2
-        Td = (T*Theta)/(2*Tc+Theta)
-    if case == "I" :
-        Kc = (T1+T2-T3)/(Kp*Tc+Theta)
-        Ti = T1+T2-T3
-        Td = (T1*T2-(T1+T2-T3)*T3) /(T1+T2-T3)
-    #calculer tau c à partir de gamma 
+        Kc = (T1p+Theta/2)/(Kp*Tc+Theta/2)
+        Ti = T1p+Theta/2
+        Td = (T1p*Theta)/(2*Tc+Theta)
+    #if case == "I" :
+        #Kc = (T1+T2-T3)/(Kp*Tc+Theta)
+        #Ti = T1+T2-T3
+        #Td = (T1*T2-(T1+T2-T3)*T3) /(T1+T2-T3)
     
     
     return (Kc, Ti, Td)
