@@ -22,34 +22,27 @@ from package_Class import Simulation,Path,FirstOrder,SecondOrderPlusDelay,LeadLa
 
 
 #Simulation Instance
-SIM = Simulation(2000,1,30,False)
+SIM = Simulation(1000,1,30,True)
 
 # Graph Instance
 G = Graph(SIM,'PID Control')
 
 # Path
-SP = Path(SIM,{0: 0,10: 40,1500: 60, SIM.TSim: 60})
-DV = Path(SIM,{0: 50, 600: 30, SIM.TSim: 30} )
+SP = Path(SIM,{0: 40,10: 40,1500: 60, SIM.TSim: 60})
+DV = Path(SIM,{0: 50, 600: 30, SIM.TSim: 30})
 MAN = Path(SIM,{0: 0,850:1,1200:0, SIM.TSim: 0})
 MANV = Path(SIM,{0: 80, SIM.TSim: 80})
-
-#Delay 
-Delay1 = Delay(SIM,100)
 
 # FO Process
 P = FirstOrder(SIM,0.6522434279003099,245.9823790885576,0.649693920059717,50,SIM.PVInit)
 D = FirstOrder(SIM,0.6156105636473335,387.0591022229922, 5.419428855220769,50,0)
 
-# Lead-Lag
-LL = LeadLag(SIM,1,200,10)
-
 # Feed Forward
-FF = FeedForward(SIM,P,D,1)
+FF = FeedForward(SIM,P,D,True)
 
 #PID
 PID = PID_Controller(SIM,1.69,141,5,2,0,100,False,True)
 PID.IMC_tuning(P,0.4,'H')
-
 
 
 if(SIM.sim == True):
@@ -113,7 +106,6 @@ SigVals1 = [
     Signal(SIM.PV,'PV','-b'),
     #Signal(P.PV,'P(s)','--b'),
     #Signal(D.PV,'D(s)','--k'),
-
 ]
 SigVals2 = [
     Signal(SIM.MV,'MV','-b'),
@@ -121,7 +113,7 @@ SigVals2 = [
     #Signal(MANV.Signal,'MANVal','-m'),
     #Signal(FF.MVFF,'MVFF','-g'),
     #Signal(PID.MVFB,'MVFB','-y'),
-    ##Signal(PID.E,'E',':r'),
+    #Signal(PID.E,'E',':r'),
     #Signal(PID.MVP,'MVP',':b'),
     #Signal(PID.MVI,'MVI',':y'),
     #Signal(PID.MVD,'MVD',':m'),
@@ -143,6 +135,7 @@ varVals = [
     Variable(PID.Kc,'Kc PID('),
     Variable(PID.Td,'Td PID'),
     Variable(PID.Ti,'Ti PID'),
+    Variable(PID.gamma,'Gamma IMC'),
 
     Variable(FF.active,'FF Enabled'),
     Variable(FF.T1p,'TLead P(s)'),
@@ -153,4 +146,4 @@ varVals = [
 ]
 
 G.show([SigVals1,SigVals2],SigValsBin,varVals)
-#G.Bode(D,True)
+#G.Bode(P,True)

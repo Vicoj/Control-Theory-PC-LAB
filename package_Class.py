@@ -607,7 +607,7 @@ class Graph:
             ax_phase.set_ylabel(r'Phase $\angle P$ [°]')
             ax_phase.legend(loc='best')
 
-            val1 = 20*np.log10(np.abs(Ptheta))
+            val1 = 20*np.log10(np.abs(PLag1))
             val2 = Gain_3Dby
             idx = np.argwhere(np.diff(np.sign(val1 - val2))).flatten()
             print(idx)
