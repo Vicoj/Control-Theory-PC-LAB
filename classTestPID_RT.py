@@ -22,16 +22,16 @@ from package_Class import Simulation,Path,FirstOrder,SecondOrderPlusDelay,LeadLa
 
 
 #Simulation Instance
-SIM = Simulation(2000,1,30,True)
+SIM = Simulation(2000,1,30,False)
 
 # Graph Instance
 G = Graph(SIM,'PID Control')
 
 # Path
 SP = Path(SIM,{0: 0,10: 40,1500: 60, SIM.TSim: 60})
-DV = Path(SIM,{0: 50, 600: 80, SIM.TSim: 80} )
+DV = Path(SIM,{0: 50, 600: 30, SIM.TSim: 30} )
 MAN = Path(SIM,{0: 0,850:1,1200:0, SIM.TSim: 0})
-MANV = Path(SIM,{0: 30, SIM.TSim: 30})
+MANV = Path(SIM,{0: 80, SIM.TSim: 80})
 
 #Delay 
 Delay1 = Delay(SIM,100)
@@ -95,7 +95,9 @@ if(SIM.sim == False):
 
             FF.RT(DV.Signal) # FeedForward
             PID.RT(SP.Signal,SIM.PV,MAN.Signal,MANV.Signal,FF.MVFF,'EBD-EBD')
-            SIM.MV.append(PID.MVFB[-1]+ FF.MVFF[-1]) # Modified Value
+
+            SIM.addMV(PID.MVFB,FF.MVFF) # Modified Value
+
             LABVal.RT(SIM.MV,DV.Signal,D.point_fct)
             delta = 0
             SIM.updateBar()
@@ -116,9 +118,9 @@ SigVals1 = [
 SigVals2 = [
     Signal(SIM.MV,'MV','-b'),
     Signal(DV.Signal,'DV','-k'),
-    Signal(MANV.Signal,'MANVal','-m'),
-    Signal(FF.MVFF,'MVFF','-g'),
-    Signal(PID.MVFB,'MVFB','-y'),
+    #Signal(MANV.Signal,'MANVal','-m'),
+    #Signal(FF.MVFF,'MVFF','-g'),
+    #Signal(PID.MVFB,'MVFB','-y'),
     ##Signal(PID.E,'E',':r'),
     #Signal(PID.MVP,'MVP',':b'),
     #Signal(PID.MVI,'MVI',':y'),

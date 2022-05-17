@@ -47,15 +47,8 @@ class Simulation:
 
     def addMV(self,MVFB,MVFF):
 
-        ##saturation
-        #if(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] <self.MVMin) :
-        #    self.MVI[-1] = self.MVMin - self.MVP[-1] - self.MVD[-1] - #ecrasement valeur de MV
-        #elif (self.MVP[-1]+self.MVI[-1]+self.MVD[-1] >=self.MVMax) :
-        #    self.MVI[-1] = self.MVMax - self.MVP[-1] - self.MVD[-1] 
-        #self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] )
-
-
         self.MV.append(MVFB[-1]+MVFF[-1])
+        return None
 
 
 
@@ -337,11 +330,12 @@ class PID_Controller:
         #mode automatique
         if(not MAN[-1]):
             #saturation
-            if(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] <self.MVMin) :
-                self.MVI[-1] = self.MVMin - self.MVP[-1] - self.MVD[-1] - #ecrasement valeur de MV
-            elif (self.MVP[-1]+self.MVI[-1]+self.MVD[-1] >=self.MVMax) :
-                self.MVI[-1] = self.MVMax - self.MVP[-1] - self.MVD[-1] 
-            self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] )
+            if(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] + MVFF[-1] < self.MVMin) :
+                self.MVI[-1] = self.MVMin - self.MVP[-1] - self.MVD[-1] - MVFF[-1] #ecrasement valeur de MV
+            
+            elif (self.MVP[-1]+self.MVI[-1]+self.MVD[-1] + MVFF[-1]>=self.MVMax) :
+                self.MVI[-1] = self.MVMax - self.MVP[-1] - self.MVD[-1] - MVFF[-1]
+            self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1])
 
         #mode manuel
         else :
