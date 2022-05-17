@@ -2,6 +2,7 @@ from ast import Str
 from cProfile import label
 from xmlrpc.client import Boolean
 import numpy as np
+import pandas as pd
 from matplotlib import colors as mcolors
 from matplotlib.widgets import Slider, Button, RadioButtons,TextBox,CheckButtons
 import matplotlib.pyplot as plt
@@ -9,13 +10,15 @@ from IPython.display import display, clear_output
 from datetime import datetime
 import os
 import tclab
+import progressbar
 
 
 
 
 class Simulation:
-    def __init__(self,TSim,Ts,PVInit):
+    def __init__(self,TSim,Ts,PVInit,sim:bool):
         self.TSim = TSim
+        self.sim = sim
         self.Ts = Ts
         self.N = int(TSim/Ts) + 1 
         self.PVInit = PVInit
@@ -23,6 +26,13 @@ class Simulation:
         self.MV = []
 
         self.t = self.calc_t()
+        self.i = 0
+        widgets = [' [',progressbar.Timer(format= 'elapsed time: %(elapsed)s'),'] ',
+           progressbar.Bar('█'),' (',
+           progressbar.ETA(), ') ',
+          ]
+        self.bar = progressbar.ProgressBar(max_value=self.N, 
+                              widgets=widgets).start()
 
     def calc_t(self):
         t = []
@@ -30,6 +40,10 @@ class Simulation:
             t.append(i*self.Ts)
 
         return t
+
+    def updateBar(self):
+        self.bar.update(self.t[self.i])
+        self.i += 1
 
 
 class Path:
@@ -57,13 +71,15 @@ class Path:
         value = self.path[timeKeyPrevious]
         self.Signal.append(value)
 
+
 class FirstOrder:
-    def __init__(self,S:Simulation,gain,Time,Theta,point_fct):
+    def __init__(self,S:Simulation,gain,Time,Theta,point_fct,PVInit):
         self.S = S
         self.K = gain
         self.T = Time
         self.Theta = Theta
         self.point_fct = point_fct
+        self.PVInit = PVInit
 
         self.PV = []
 
@@ -90,7 +106,7 @@ class FirstOrder:
         if (self.T != 0):
             K = self.S.Ts/self.T
             if len(self.PV) == 0:
-                self.PV.append(self.S.PVInit)
+                self.PV.append(self.PVInit)
             else:
                 if method == 'EBD':
                     self.PV.append((1/(1+K))*self.PV[-1] + (K*self.K/(1+K))*MV[-1])
@@ -177,7 +193,7 @@ class LeadLag:
             self.PV.append(self.K*MV[-1])
 
 class FeedForward:
-    def __init__(self,S:Simulation,P:FirstOrder,D:FirstOrder):
+    def __init__(self,S:Simulation,P:FirstOrder,D:FirstOrder,active:bool):
         self.S = S
         self.P = P
         self.D = D
@@ -198,15 +214,16 @@ class FeedForward:
 
         self.MVFF = []
         #Gain
-        KFF = -(self.Kd/self.Kp) 
+        KFF1 = -(self.Kd/self.Kp) 
+        KFF2 = active
 
         #Delay
         thetaFF = np.max([self.ThetaD-self.ThetaP,0])
         self.delayFF = Delay(S,thetaFF)
         
         #leadLag
-        self.LL1 = LeadLag(S,KFF,self.T1p,self.T1d)
-        self.LL2 = LeadLag(S,1,self.T2p,self.T2d)
+        self.LL1 = LeadLag(S,KFF1,self.T1p,self.T1d)
+        self.LL2 = LeadLag(S,KFF2,self.T2p,self.T2d)
 
     def RT(self,DV):
 
@@ -239,6 +256,31 @@ class PID_Controller:
         self.MVI = []
         self.MVD = []
         self.E = []
+
+    def IMC_tuning(self,P:FirstOrder, gamma, case:str()):
+    #theta process
+    #Kp gain process
+    #T1p = time constant process
+    #gamma for desired closed loop time constant
+    #
+    
+        Tc = gamma*P.T # 0.2 <gamma< 0.9
+
+        if case == "G" :
+            self.Kc = P.T/(P.K*Tc+P.Theta)
+            self.Ti = P.T+P.Theta/2
+            self.Td = 0
+        if case == "H" :
+            self.Kc = (P.T+P.Theta/2)/(P.K*Tc+P.Theta/2)
+            self.Ti = P.T+P.Theta/2
+            self.Td = (P.T*P.Theta)/(2*Tc+P.Theta)
+        #if case == "I" :
+            #Kc = (T1+T2-T3)/(Kp*Tc+Theta)
+            #Ti = T1+T2-T3
+            #Td = (T1*T2-(T1+T2-T3)*T3) /(T1+T2-T3)
+
+
+        
 
     def RT(self,SP,PV,MAN,MVMan,MVFF,method):
         
@@ -326,7 +368,7 @@ class Delay:
             self.PV.append(MV[-NDelay-1])
 
 class LabValues:
-    def __init__(self,S:Simulation,LAB):
+    def __init__(self,S:Simulation,LAB:tclab):
         self.S = S
         self.LAB = LAB
         self.S.PVInit = self.LAB.T1
@@ -334,19 +376,15 @@ class LabValues:
         self.Ds = []
 
 
-    def RT(self,MV,DV):
+    def RT(self,MV,DV,DV0):
 
         self.LAB.Q1(MV[-1])
-        self.LAB.Q2(DV[-1])
+        self.LAB.Q2(DV[-1]-DV0)
 
         self.Ps.append(self.LAB.T1)
-        self.Ds.append(self.LAB.T2)
+        self.Ds.append(self.LAB.T2-DV0)
 
-        self.S.PV.append(self.Ps[-1]+self.Ds[-1])
-
-    
-
-
+        self.S.PV.append(self.Ps[-1])
 
 class Signal:
     def __init__(self,Signal,name:Str(),color:Str()):
@@ -401,7 +439,7 @@ class Graph:
         i = 0.9
         for var in varVals:
             varbox = plt.axes([0.87,i , 0.05, 0.04])
-            textVar =  TextBox(varbox, var.name+': ', initial=str(var.var))
+            textVar =  TextBox(varbox, var.name+': ', initial=str(round(var.var,4)))
             i -= 0.05
             #textVar.on_submit(self.update)
 
@@ -416,7 +454,7 @@ class Graph:
         button_save.on_clicked(self.save)
 
         namebox = plt.axes([0.83, 0.15, 0.1, 0.04])
-        self.text_box = TextBox(namebox, 'Name :', initial='')
+        self.text_box = TextBox(namebox, 'Name :', initial='enter')
 
         closefig = plt.axes([0.83, 0.05, 0.1, 0.04])
         button_close = Button(closefig, 'Close', hovercolor='0.975')
@@ -425,27 +463,6 @@ class Graph:
         plt.get_current_fig_manager().full_screen_toggle()
         plt.show()
 
-    def update(self,event):
-        pass
-        #i=0
-        #for box in self.boxes:
-        #    self.varVals[i].var = float(box.text)
-        #    print(self.varVals[i].var)
-#
-        #self.step.run()
-#
-        #i=0
-        #for signal in self.signals[0]:
-        #    self.ax1[i] = signal.Signal
-        #    i+=1
-        #i=0
-        #for signal in self.signals[1]:
-        #    self.ax2[i] = signal.Signal
-        #    i+=1
-#
-        #self.fig.canvas.draw()
-        #self.fig.canvas.flush_events()
-#
 
             
 
