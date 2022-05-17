@@ -410,9 +410,9 @@ class Variable:
 
 class Graph:
     def __init__(self,S:Simulation,title):
-
-        self.title = title
         self.S = S
+        self.title = title + self.S.name
+        
         
 
     def show(self,signals:list(),binSignals:list(),varVals:list()):
