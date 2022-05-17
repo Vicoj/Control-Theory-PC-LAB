@@ -14,7 +14,6 @@ import progressbar
 
 
 
-
 class Simulation:
     def __init__(self,TSim,Ts,PVInit,sim:bool):
         self.TSim = TSim
@@ -46,7 +45,7 @@ class Simulation:
         self.i += 1
 
     def addMV(self,MVFB,MVFF):
-
+        
         self.MV.append(MVFB[-1]+MVFF[-1])
         return None
 
@@ -241,9 +240,11 @@ class FeedForward:
         self.LL1.RT(self.delayFF.PV,'EBD')
         self.LL2.RT(self.LL1.PV,'EBD')
         
-
-    
-        self.MVFF.append(self.LL2.PV[-1])
+        
+        if(self.active):
+            self.MVFF.append(self.LL2.PV[-1])
+        else :
+            self.MVFF.append(0)
 
 class PID_Controller:
     def __init__(self,S:Simulation,Kc,Ti,Td,alpha,MVMin,MVMax,OLP,ManFF:bool):
@@ -340,9 +341,9 @@ class PID_Controller:
         #mode manuel
         else :
             if(not self.ManFF):
-                self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]
-            else:
                 self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]-MVFF[-1]
+            else:
+                self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]
 
             self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1])
         
