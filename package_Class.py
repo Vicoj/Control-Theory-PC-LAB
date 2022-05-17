@@ -516,7 +516,7 @@ class Graph:
     def close(self,event):
         plt.close()
 
-    def Bode(self,P:FirstOrder, Show = True):
+    def Bode(self,P:FirstOrder,PID:PID_Controller,type):
     
         """
         :P: Process as defined by the class "Process".
@@ -539,11 +539,15 @@ class Graph:
         :Show: boolean value (optional: default value = True). If Show = True, the Bode diagram is shown. Otherwise Ps (P(j omega)) (vector of complex numbers) is returned.
 
         The function "Bode" generates the Bode diagram of the process P
-        """     
+        """  
 
         omega = np.logspace(-4, 4, 10000)
         s = 1j*omega
-        
+
+        Tfd = PID.alpha*PID.Td
+        Cs = PID.Kc * ((1/PID.Ti*s)+PID.Td*s/(Tfd*s+1))
+
+
         # FCT TRSF
         Ptheta = np.exp(-P.Theta*s)
         PGain = P.K*np.ones_like(Ptheta)
@@ -559,135 +563,141 @@ class Graph:
         Ps = np.multiply(Ps,PLead1)
         Ps = np.multiply(Ps,PLead2)
 
+        Ls = np.multiply(Cs,Ps)
+
         Db0 = -3
 
         Gain_0Dby = np.array([Db0]*len(omega))
 
         
-        if Show == True:
+    
+        self.fig, (ax_gain, ax_phase) = plt.subplots(2,1)
+
+        # Gain part
+        ax_gain.plot(omega,20*np.log10(np.abs(Ps)),label='P(s)')
+        ax_gain.plot(omega,20*np.log10(np.abs(Ls)),label='L(s)')
+        #ax_gain.plot(omega,20*np.log10(np.abs(PGain)),label='Pgain')
+        #if P.Theta > 0:
+        #    ax_gain.plot(omega,20*np.log10(np.abs(Ptheta)),label='Ptheta(s)')
+        #if P.T > 0:
+        #    ax_gain.plot(omega,20*np.log10(np.abs(PLag1)),label='PLag1(s)')
+
+        gain_min = np.min(20*np.log10(np.abs(Ps)/5))
+        gain_max = np.max(20*np.log10(np.abs(Ps)*5))
+
+        ax_gain.plot(omega,Gain_0Dby,label='-3Db',color='k')
+        ax_gain.plot(np.array([0]*len(Ps)),Gain_0Dby,label='Zero')
         
-            self.fig, (ax_gain, ax_phase) = plt.subplots(2,1)
+        ax_gain.set_xlim([np.min(omega), np.max(omega)])
+        ax_gain.set_ylim([gain_min, gain_max])
+        ax_gain.set_ylabel('Amplitude |P| [db]')
+        ax_gain.set_title('Bode plot of P')
+        ax_gain.legend(loc='best')
+        ax_gain.set_xscale("log")
 
-            # Gain part
-            ax_gain.plot(omega,20*np.log10(np.abs(Ps)),label='P(s)')
-            #ax_gain.plot(omega,20*np.log10(np.abs(PGain)),label='Pgain')
-            #if P.Theta > 0:
-            #    ax_gain.plot(omega,20*np.log10(np.abs(Ptheta)),label='Ptheta(s)')
-            #if P.T > 0:
-            #    ax_gain.plot(omega,20*np.log10(np.abs(PLag1)),label='PLag1(s)')
+        Phase_180y = np.array([-180]*len(Ps))
 
-            gain_min = np.min(20*np.log10(np.abs(Ps)/5))
-            gain_max = np.max(20*np.log10(np.abs(Ps)*5))
+        # Phase part
+        ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ps)),label='P(s)')
+        ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ls)),label='L(s)')
+        #ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PGain)),label='Pgain')
+        #if P.Theta > 0:    
+        #    ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ptheta)),label='Ptheta(s)')
+        #if P.T > 0:        
+        #    ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PLag1)),label='PLag1(s)')  
 
-            ax_gain.plot(omega,Gain_0Dby,label='-3Db',color='k')
-            ax_gain.plot(np.array([0]*len(Ps)),Gain_0Dby,label='Zero')
-            
-            ax_gain.set_xlim([np.min(omega), np.max(omega)])
-            ax_gain.set_ylim([gain_min, gain_max])
-            ax_gain.set_ylabel('Amplitude |P| [db]')
-            ax_gain.set_title('Bode plot of P')
-            ax_gain.legend(loc='best')
-            ax_gain.set_xscale("log")
+        ax_phase.semilogx(omega,Phase_180y,label='-180°',color='k')
 
-            Phase_180y = np.array([-180]*len(Ps))
+        ax_phase.set_xlim([np.min(omega), np.max(omega)])
+        ph_min = np.min((180/np.pi)*np.unwrap(np.angle(Ps))) - 10
+        ph_max = np.max((180/np.pi)*np.unwrap(np.angle(Ps))) + 10
 
-            # Phase part
-            ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ps)),label='P(s)')
-            #ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PGain)),label='Pgain')
-            #if P.Theta > 0:    
-            #    ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ptheta)),label='Ptheta(s)')
-            #if P.T > 0:        
-            #    ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PLag1)),label='PLag1(s)')  
+        ax_phase.set_ylim([np.max([ph_min, -200]), ph_max])
+        ax_phase.set_ylabel(r'Phase $\angle P$ [°]')
+        ax_phase.legend(loc='best')
 
-            ax_phase.semilogx(omega,Phase_180y,label='-180°',color='k')
+        if (type=='PID'):
+            varCalc = Ls
 
-            ax_phase.set_xlim([np.min(omega), np.max(omega)])
-            ph_min = np.min((180/np.pi)*np.unwrap(np.angle(Ps))) - 10
-            ph_max = np.max((180/np.pi)*np.unwrap(np.angle(Ps))) + 10
-
-            ax_phase.set_ylim([np.max([ph_min, -200]), ph_max])
-            ax_phase.set_ylabel(r'Phase $\angle P$ [°]')
-            ax_phase.legend(loc='best')
-
+        else :
             varCalc = Ps
 
-            #Find ωc
-            val1 = 20*np.log10(np.abs(varCalc))
-            val2 = Gain_0Dby
-            wcx = np.argwhere(np.diff(np.sign(val1 - val2))).flatten()
+        #Find ωc
+        val1 = 20*np.log10(np.abs(varCalc))
+        val2 = Gain_0Dby
+        wcx = np.argwhere(np.diff(np.sign(val1 - val2))).flatten()
 
-            #Find °c
-            val3 = (180/np.pi)*np.unwrap(np.angle(varCalc))
-            val4 = Phase_180y
-            tcx = np.argwhere(np.diff(np.sign(val3 - val4))).flatten()
-            try:
-                wc = omega[wcx][0]
-                phaseMarg = val3[wcx][0]
-            except:
-                wc = 0
-                phaseMarg = 0
-            try:
-                ac = omega[tcx][0]
-                intd = val1[tcx]
-                GainMarg = val1[tcx][0]
-            except:
-                ac = 0
-                GainMarg = 0
-
-
-            ax_gain.axvline(wc,color = 'k')
-            ax_gain.axvline(ac,color = 'k')
-
-            ax_gain.scatter(ac,GainMarg,color = 'k')
-            ax_gain.scatter(ac,Db0,color = 'k')
-            ax_gain.scatter(wc,Db0,color = 'k')
-
-            ax_phase.axvline(wc,color = 'k')
-            ax_phase.axvline(ac,color = 'k')
-
-            ax_phase.scatter(ac,-180,color = 'k')
-            ax_phase.scatter(wc,-180,color = 'k')
-            ax_phase.scatter(wc,phaseMarg,color = 'k')
-
-            
-            GainMarg = Db0 - GainMarg 
-            phaseMarg =  phaseMarg + 180
-            
+        #Find °c
+        val3 = (180/np.pi)*np.unwrap(np.angle(varCalc))
+        val4 = Phase_180y
+        tcx = np.argwhere(np.diff(np.sign(val3 - val4))).flatten()
+        try:
+            wc = omega[wcx][0]
+            phaseMarg = val3[wcx][0]
+        except:
+            wc = 0
+            phaseMarg = 0
+        try:
+            ac = omega[tcx][0]
+            intd = val1[tcx]
+            GainMarg = val1[tcx][0]
+        except:
+            ac = 0
+            GainMarg = 0
 
 
+        ax_gain.axvline(wc,color = 'k')
+        ax_gain.axvline(ac,color = 'k')
+
+        ax_gain.scatter(ac,GainMarg,color = 'k')
+        ax_gain.scatter(ac,Db0,color = 'k')
+        ax_gain.scatter(wc,Db0,color = 'k')
+
+        ax_phase.axvline(wc,color = 'k')
+        ax_phase.axvline(ac,color = 'k')
+
+        ax_phase.scatter(ac,-180,color = 'k')
+        ax_phase.scatter(wc,-180,color = 'k')
+        ax_phase.scatter(wc,phaseMarg,color = 'k')
+
+        
+        GainMarg = Db0 - GainMarg 
+        phaseMarg =  phaseMarg + 180
+        
 
 
 
-            plt.subplots_adjust(left=0.05, bottom=0.05, right = 0.8,top=0.95,hspace=0.064)
 
-            varbox = plt.axes([0.9,0.8 , 0.05, 0.03])
-            textWc =  TextBox(varbox, 'Courbe: ', initial='P(s)')
 
-            wcbox = plt.axes([0.9,0.75 , 0.05, 0.03])
-            textWc =  TextBox(wcbox, 'Gain ωc: ', initial=str(round(wc,4)))
+        plt.subplots_adjust(left=0.05, bottom=0.05, right = 0.8,top=0.95,hspace=0.064)
 
-            acbox = plt.axes([0.9,0.7 , 0.05, 0.03])
-            textAc =  TextBox(acbox, 'Angle ωc: ', initial=str(round(ac,4)))
+        varbox = plt.axes([0.9,0.8 , 0.05, 0.03])
+        textWc =  TextBox(varbox, 'Courbe: ', initial='P(s)')
 
-            MGbox = plt.axes([0.9,0.65 , 0.05, 0.03])
-            textMG =  TextBox(MGbox, 'Marge de gain [Db]: ', initial=str(round(GainMarg,4)))
+        wcbox = plt.axes([0.9,0.75 , 0.05, 0.03])
+        textWc =  TextBox(wcbox, 'Gain ωc: ', initial=str(round(wc,4)))
 
-            AGbox = plt.axes([0.9,0.6 , 0.05, 0.03])
-            textAG =  TextBox(AGbox, 'Marge de Phase [deg °]: ', initial=str(round(phaseMarg,4)))
+        acbox = plt.axes([0.9,0.7 , 0.05, 0.03])
+        textAc =  TextBox(acbox, 'Angle ωc: ', initial=str(round(ac,4)))
 
-            namebox = plt.axes([0.83, 0.15, 0.1, 0.04])
-            self.text_box = TextBox(namebox,  'Name ', initial='')
+        MGbox = plt.axes([0.9,0.65 , 0.05, 0.03])
+        textMG =  TextBox(MGbox, 'Marge de gain [Db]: ', initial=str(round(GainMarg,4)))
 
-            saveax = plt.axes([0.93, 0.15, 0.05, 0.04]) #4-tuple of floats *rect* = [left, bottom, width, height]
-            button_save = Button(saveax, 'Save', hovercolor='0.975')
-            button_save.on_clicked(self.saveFig)
+        AGbox = plt.axes([0.9,0.6 , 0.05, 0.03])
+        textAG =  TextBox(AGbox, 'Marge de Phase [deg °]: ', initial=str(round(phaseMarg,4)))
 
-            closefig = plt.axes([0.83, 0.05, 0.1, 0.04])
-            button_close = Button(closefig, 'Close', hovercolor='0.975')
-            button_close.on_clicked(self.close)
+        namebox = plt.axes([0.83, 0.15, 0.1, 0.04])
+        self.text_box = TextBox(namebox,  'Name ', initial='')
 
-            
-            plt.get_current_fig_manager().full_screen_toggle()
-            plt.show()
-        else:
-            return Ps
+        saveax = plt.axes([0.93, 0.15, 0.05, 0.04]) #4-tuple of floats *rect* = [left, bottom, width, height]
+        button_save = Button(saveax, 'Save', hovercolor='0.975')
+        button_save.on_clicked(self.saveFig)
+
+        closefig = plt.axes([0.83, 0.05, 0.1, 0.04])
+        button_close = Button(closefig, 'Close', hovercolor='0.975')
+        button_close.on_clicked(self.close)
+
+        
+        plt.get_current_fig_manager().full_screen_toggle()
+        plt.show()
+

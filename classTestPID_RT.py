@@ -145,10 +145,5 @@ varVals = [
 
 ]
 
-<<<<<<< HEAD
 #G.show([SigVals1,SigVals2],SigValsBin,varVals)
-G.Bode(P,True)
-=======
-G.show([SigVals1,SigVals2],SigValsBin,varVals)
-#G.Bode(P,True)
->>>>>>> 501e2fea1f474c79ecad50f47f663a7e67bce8ae
+G.Bode(P,PID,'PID')
