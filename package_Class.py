@@ -45,6 +45,19 @@ class Simulation:
         self.bar.update(self.t[self.i])
         self.i += 1
 
+    def addMV(self,MVFB,MVFF):
+
+        ##saturation
+        #if(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] <self.MVMin) :
+        #    self.MVI[-1] = self.MVMin - self.MVP[-1] - self.MVD[-1] - #ecrasement valeur de MV
+        #elif (self.MVP[-1]+self.MVI[-1]+self.MVD[-1] >=self.MVMax) :
+        #    self.MVI[-1] = self.MVMax - self.MVP[-1] - self.MVD[-1] 
+        #self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] )
+
+
+        self.MV.append(MVFB[-1]+MVFF[-1])
+
+
 
 class Path:
     def __init__(self,S:Simulation,path):
@@ -194,6 +207,7 @@ class LeadLag:
 
 class FeedForward:
     def __init__(self,S:Simulation,P:FirstOrder,D:FirstOrder,active:bool):
+        self.active = active
         self.S = S
         self.P = P
         self.D = D
@@ -234,11 +248,13 @@ class FeedForward:
         self.LL1.RT(self.delayFF.PV,'EBD')
         self.LL2.RT(self.LL1.PV,'EBD')
         
+
     
         self.MVFF.append(self.LL2.PV[-1])
 
 class PID_Controller:
-    def __init__(self,S:Simulation,Kc,Ti,Td,alpha,MVMin,MVMax,OLP,ManFF):
+    def __init__(self,S:Simulation,Kc,Ti,Td,alpha,MVMin,MVMax,OLP,ManFF:bool):
+        
         self.S = S
         self.Kc = Kc
         self.Ti = Ti
@@ -248,8 +264,10 @@ class PID_Controller:
         self.MVMax = MVMax
         self.OLP = OLP
         self.ManFF = ManFF
+        self.gamma = 0
+        self.case = ''
 
-        self.MVMan = [80]
+        self.MVMan = []
 
         self.MVFB = []
         self.MVP = []
@@ -262,8 +280,9 @@ class PID_Controller:
     #Kp gain process
     #T1p = time constant process
     #gamma for desired closed loop time constant
-    #
-    
+        self.gamma = gamma
+        self.case = case
+
         Tc = gamma*P.T # 0.2 <gamma< 0.9
 
         if case == "G" :
@@ -274,10 +293,6 @@ class PID_Controller:
             self.Kc = (P.T+P.Theta/2)/(P.K*Tc+P.Theta/2)
             self.Ti = P.T+P.Theta/2
             self.Td = (P.T*P.Theta)/(2*Tc+P.Theta)
-        #if case == "I" :
-            #Kc = (T1+T2-T3)/(Kp*Tc+Theta)
-            #Ti = T1+T2-T3
-            #Td = (T1*T2-(T1+T2-T3)*T3) /(T1+T2-T3)
 
 
         
@@ -323,14 +338,14 @@ class PID_Controller:
         if(not MAN[-1]):
             #saturation
             if(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] <self.MVMin) :
-                self.MVI[-1] = self.MVMin - self.MVP[-1] - self.MVD[-1] #ecrasement valeur de MV
+                self.MVI[-1] = self.MVMin - self.MVP[-1] - self.MVD[-1] - #ecrasement valeur de MV
             elif (self.MVP[-1]+self.MVI[-1]+self.MVD[-1] >=self.MVMax) :
-                self.MVI[-1] = self.MVMax - self.MVP[-1] - self.MVD[-1]
-            self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1])
+                self.MVI[-1] = self.MVMax - self.MVP[-1] - self.MVD[-1] 
+            self.MVFB.append(self.MVP[-1]+self.MVI[-1]+self.MVD[-1] )
 
         #mode manuel
         else :
-            if(self.ManFF):
+            if(not self.ManFF):
                 self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]
             else:
                 self.MVI[-1]=MVMan[-1]-self.MVP[-1]-self.MVD[-1]-MVFF[-1]
@@ -438,9 +453,9 @@ class Graph:
         self.boxes = []
         i = 0.9
         for var in varVals:
-            varbox = plt.axes([0.87,i , 0.05, 0.04])
+            varbox = plt.axes([0.87,i , 0.05, 0.03])
             textVar =  TextBox(varbox, var.name+': ', initial=str(round(var.var,4)))
-            i -= 0.05
+            i -= 0.04
             #textVar.on_submit(self.update)
 
             self.boxes.append(textVar)
@@ -449,11 +464,11 @@ class Graph:
     
 
         # Buttons
-        saveax = plt.axes([0.93, 0.15, 0.05, 0.04]) #4-tuple of floats *rect* = [left, bottom, width, height]
+        saveax = plt.axes([0.93, 0.1, 0.05, 0.04]) #4-tuple of floats *rect* = [left, bottom, width, height]
         button_save = Button(saveax, 'Save', hovercolor='0.975')
         button_save.on_clicked(self.save)
 
-        namebox = plt.axes([0.83, 0.15, 0.1, 0.04])
+        namebox = plt.axes([0.83, 0.1, 0.1, 0.04])
         self.text_box = TextBox(namebox, 'Name :', initial='enter')
 
         closefig = plt.axes([0.83, 0.05, 0.1, 0.04])

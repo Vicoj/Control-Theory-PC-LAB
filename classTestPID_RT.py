@@ -22,16 +22,16 @@ from package_Class import Simulation,Path,FirstOrder,SecondOrderPlusDelay,LeadLa
 
 
 #Simulation Instance
-SIM = Simulation(1500,1,30,False)
+SIM = Simulation(2000,1,30,True)
 
 # Graph Instance
 G = Graph(SIM,'PID Control')
 
 # Path
-SP = Path(SIM,{0: 0,10: 40,800: 60, SIM.TSim: 60})
+SP = Path(SIM,{0: 0,10: 40,1500: 60, SIM.TSim: 60})
 DV = Path(SIM,{0: 50, 600: 80, SIM.TSim: 80} )
-MAN = Path(SIM,{0: 0,1000:0,1500:0, SIM.TSim: 0})
-MANVal = Path(SIM,{0: 80, SIM.TSim: 80})
+MAN = Path(SIM,{0: 0,850:1,1200:0, SIM.TSim: 0})
+MANV = Path(SIM,{0: 30, SIM.TSim: 30})
 
 #Delay 
 Delay1 = Delay(SIM,100)
@@ -47,7 +47,7 @@ LL = LeadLag(SIM,1,200,10)
 FF = FeedForward(SIM,P,D,1)
 
 #PID
-PID = PID_Controller(SIM,1.69,141,5,2,0,100,False,False)
+PID = PID_Controller(SIM,1.69,141,5,2,0,100,False,True)
 PID.IMC_tuning(P,0.4,'H')
 
 
@@ -60,17 +60,19 @@ if(SIM.sim == True):
         SP.RT(t)
         DV.RT(t)
         MAN.RT(t)
-        MANVal.RT(t)
+        MANV.RT(t)
 
         FF.RT(DV.Signal) # FeedForward
-        PID.RT(SP.Signal,SIM.PV,MAN.Signal,MANVal,FF.MVFF,'EBD-EBD')
-        SIM.MV.append(PID.MVFB[-1]+ FF.MVFF[-1]) # Modified Value
+        PID.RT(SP.Signal,SIM.PV,MAN.Signal,MANV.Signal,FF.MVFF,'EBD-EBD')
+
+        SIM.addMV(PID.MVFB,FF.MVFF) # Modified Value
+
         P.RT(SIM.MV,'EBD')
         D.RT(DV.Signal,'EBD')
         SIM.PV.append(P.PV[-1]+D.PV[-1]) # Point Value
         SIM.updateBar()
 
-if((SIM.sim == False)):
+if(SIM.sim == False):
     #Tc Lab
     LAB = tclab.TCLab()
     LABVal = LabValues(SIM,LAB)
@@ -89,10 +91,10 @@ if((SIM.sim == False)):
             SP.RT(SIM.t)
             DV.RT(SIM.t)
             MAN.RT(SIM.t)
-            MANVal.RT(SIM.t)
+            MANV.RT(SIM.t)
 
             FF.RT(DV.Signal) # FeedForward
-            PID.RT(SP.Signal,SIM.PV,MAN.Signal,MANVal,FF.MVFF,'EBD-EBD')
+            PID.RT(SP.Signal,SIM.PV,MAN.Signal,MANV.Signal,FF.MVFF,'EBD-EBD')
             SIM.MV.append(PID.MVFB[-1]+ FF.MVFF[-1]) # Modified Value
             LABVal.RT(SIM.MV,DV.Signal,D.point_fct)
             delta = 0
@@ -114,8 +116,9 @@ SigVals1 = [
 SigVals2 = [
     Signal(SIM.MV,'MV','-b'),
     Signal(DV.Signal,'DV','-k'),
-    #Signal(FF.MVFF,'MVFF','-k'),
-    #Signal(PID.MVFB,'MVFB','-y'),
+    Signal(MANV.Signal,'MANVal','-m'),
+    Signal(FF.MVFF,'MVFF','-g'),
+    Signal(PID.MVFB,'MVFB','-y'),
     ##Signal(PID.E,'E',':r'),
     #Signal(PID.MVP,'MVP',':b'),
     #Signal(PID.MVI,'MVI',':y'),
@@ -131,9 +134,20 @@ varVals = [
     Variable(SIM.Ts,'Sampling [s]'),
     Variable(SIM.PVInit,'Pv Init [°C]'),
 
-    Variable(PID.Kc,'Kc PID'),
+    Variable(PID.OLP,'Open Loop'),
+    Variable(PID.ManFF,'Man FF'),
+
+
+    Variable(PID.Kc,'Kc PID('),
     Variable(PID.Td,'Td PID'),
     Variable(PID.Ti,'Ti PID'),
+
+    Variable(FF.active,'FF Enabled'),
+    Variable(FF.T1p,'TLead P(s)'),
+    Variable(FF.T2p,'TLag P(s)'),
+    Variable(FF.T1d,'TLead D(s)'),
+    Variable(FF.T2d,'TLag D(s)'),
+
 ]
 
 G.show([SigVals1,SigVals2],SigValsBin,varVals)
