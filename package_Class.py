@@ -16,7 +16,8 @@ import progressbar
 
 
 class Simulation:
-    def __init__(self,TSim,Ts,PVInit,sim:bool):
+    def __init__(self,TSim,Ts,PVInit,sim:bool,name:str()):
+        self.name = name
         self.TSim = TSim
         self.sim = sim
         self.Ts = Ts
@@ -76,7 +77,6 @@ class Path:
     
         value = self.path[timeKeyPrevious]
         self.Signal.append(value)
-
 
 class FirstOrder:
     def __init__(self,S:Simulation,gain,Time,Theta,point_fct,PVInit):
@@ -465,7 +465,7 @@ class Graph:
         button_save.on_clicked(self.save)
 
         namebox = plt.axes([0.83, 0.1, 0.1, 0.04])
-        self.text_box = TextBox(namebox, 'Name :', initial='enter')
+        self.text_box = TextBox(namebox, 'Name :', initial=self.S.name)
 
         closefig = plt.axes([0.83, 0.05, 0.1, 0.04])
         button_close = Button(closefig, 'Close', hovercolor='0.975')
@@ -478,36 +478,28 @@ class Graph:
             
 
     def saveFig(self,event):
-        self.fig.savefig("Output/"+self.text_box.text)
+        now = datetime.now()
+        date_time = now.strftime("%Y-%m-%d-%Hh%M")
+        self.fig.savefig("Output/Margin_Graph_"+self.text_boxMargin.text+ '_' + date_time)
 
     def save(self,event):
 
-        self.fig.savefig("Output/"+self.text_box.text)
+        
         now = datetime.now()
         date_time = now.strftime("%Y-%m-%d-%Hh%M")
         t = np.array(self.S.t)
         data = [t.T]
         data_names ='t,'
 
-        for sig in self.signals[0]:
+        for sig in self.signals[2]:
             arr = np.array(sig.Signal)
             data.append(arr.T)
             data_names += sig.name + ','
-
-        for sig in self.signals[1]:
-            arr = np.array(sig.Signal)
-            data.append(arr.T)
-            data_names += sig.name + ','
-
-        for bin in self.binSignals:
-            arr = np.array(bin.Signal)
-            data.append(arr.T)
-            data_names += bin.name + ','
         
         my_data = np.vstack((data))
         my_data = my_data.T
 
-
+        self.fig.savefig("Output/PID_Graph_"+self.text_box.text+ '_' + date_time)
         nameFile = 'Data/PID_Graph_' + self.text_box.text + '_' + date_time + '.txt'
         if not os.path.exists('Data'):
             os.makedirs('Data')
@@ -591,7 +583,7 @@ class Graph:
         ax_gain.set_xlim([np.min(omega), np.max(omega)])
         ax_gain.set_ylim([gain_min, gain_max])
         ax_gain.set_ylabel('Amplitude |P| [db]')
-        ax_gain.set_title('Bode plot of P')
+        ax_gain.set_title('Bode plot of '+type)
         ax_gain.legend(loc='best')
         ax_gain.set_xscale("log")
 
@@ -599,7 +591,7 @@ class Graph:
 
         # Phase part
         ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ps)),label='P(s)')
-        ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ls)),label='L(s)')
+        ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ls)),label='PID(s)')
         #ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(PGain)),label='Pgain')
         #if P.Theta > 0:    
         #    ax_phase.semilogx(omega, (180/np.pi)*np.unwrap(np.angle(Ptheta)),label='Ptheta(s)')
@@ -618,9 +610,11 @@ class Graph:
 
         if (type=='PID'):
             varCalc = Ls
+            name = self.S.name + '_' +  type
 
         else :
             varCalc = Ps
+            name = self.S.name + '_' + type
 
         #Find ωc
         val1 = 20*np.log10(np.abs(varCalc))
@@ -631,63 +625,114 @@ class Graph:
         val3 = (180/np.pi)*np.unwrap(np.angle(varCalc))
         val4 = Phase_180y
         tcx = np.argwhere(np.diff(np.sign(val3 - val4))).flatten()
-        try:
-            wc = omega[wcx][0]
-            phaseMarg = val3[wcx][0]
-        except:
-            wc = 0
-            phaseMarg = 0
-        try:
-            ac = omega[tcx][0]
-            intd = val1[tcx]
-            GainMarg = val1[tcx][0]
-        except:
-            ac = 0
-            GainMarg = 0
-
-
-        ax_gain.axvline(wc,color = 'k')
-        ax_gain.axvline(ac,color = 'k')
-
-        ax_gain.scatter(ac,GainMarg,color = 'k')
-        ax_gain.scatter(ac,Db0,color = 'k')
-        ax_gain.scatter(wc,Db0,color = 'k')
-
-        ax_phase.axvline(wc,color = 'k')
-        ax_phase.axvline(ac,color = 'k')
-
-        ax_phase.scatter(ac,-180,color = 'k')
-        ax_phase.scatter(wc,-180,color = 'k')
-        ax_phase.scatter(wc,phaseMarg,color = 'k')
-
-        
-        GainMarg = Db0 - GainMarg 
-        phaseMarg =  phaseMarg + 180
-        
-
-
-
-
 
         plt.subplots_adjust(left=0.05, bottom=0.05, right = 0.8,top=0.95,hspace=0.064)
 
+        if( len(wcx) == 0 and len(tcx) == 0 ):
+
+            MGbox = plt.axes([0.9,0.65 , 0.05, 0.03])
+            textMG =  TextBox(MGbox, 'Marge de gain [Db]: ', initial='None')
+
+            AGbox = plt.axes([0.9,0.6 , 0.05, 0.03])
+            textAG =  TextBox(AGbox, 'Marge de Phase [deg °]: ', initial='None')
+
+            wcbox = plt.axes([0.9,0.75 , 0.05, 0.03])
+            textWc =  TextBox(wcbox, 'Gain ωc: ', initial='None')
+
+            acbox = plt.axes([0.9,0.7 , 0.05, 0.03])
+            textAc =  TextBox(acbox, 'Angle ωc: ', initial='None')
+
+        elif ( len(wcx) == 0):
+
+            AGbox = plt.axes([0.9,0.6 , 0.05, 0.03])
+            textAG =  TextBox(AGbox, 'Marge de Phase [deg °]: ', initial='None')
+
+            wcbox = plt.axes([0.9,0.75 , 0.05, 0.03])
+            textWc =  TextBox(wcbox, 'Gain ωc: ', initial='None')
+
+            ac = omega[tcx][0]
+            GainMarg = val1[tcx][0]
+
+            ax_gain.axvline(ac,color = 'k')
+            ax_gain.scatter(ac,GainMarg,color = 'k')
+            ax_gain.scatter(ac,Db0,color = 'k')
+
+            ax_phase.axvline(ac,color = 'k')
+            ax_phase.scatter(ac,-180,color = 'k')
+            GainMarg = Db0 - GainMarg 
+
+            acbox = plt.axes([0.9,0.7 , 0.05, 0.03])
+            textAc =  TextBox(acbox, 'Angle ωc: ', initial=str(round(ac,4)))
+
+            MGbox = plt.axes([0.9,0.65 , 0.05, 0.03])
+            textMG =  TextBox(MGbox, 'Marge de gain [Db]: ', initial=str(round(GainMarg,4)))
+
+        elif (len(tcx) == 0):
+
+            acbox = plt.axes([0.9,0.7 , 0.05, 0.03])
+            textAc =  TextBox(acbox, 'Angle ωc: ', initial='None')
+
+            MGbox = plt.axes([0.9,0.65 , 0.05, 0.03])
+            textMG =  TextBox(MGbox, 'Marge de gain [Db]: ', initial='None')
+
+            wc = omega[wcx][0]
+            phaseMarg = val3[wcx][0]
+
+            ax_gain.axvline(wc,color = 'k')
+            ax_gain.scatter(wc,Db0,color = 'k')
+
+            ax_phase.axvline(wc,color = 'k')
+            ax_phase.scatter(wc,-180,color = 'k')
+            ax_phase.scatter(wc,phaseMarg,color = 'k')
+            phaseMarg =  phaseMarg + 180
+
+            wcbox = plt.axes([0.9,0.75 , 0.05, 0.03])
+            textWc =  TextBox(wcbox, 'Gain ωc: ', initial=str(round(wc,4)))
+
+            AGbox = plt.axes([0.9,0.6 , 0.05, 0.03])
+            textAG =  TextBox(AGbox, 'Marge de Phase [deg °]: ', initial=str(round(phaseMarg,4)))
+  
+        else:
+            
+            wc = omega[wcx][0]
+            phaseMarg = val3[wcx][0]
+
+            ax_gain.axvline(wc,color = 'k')
+            ax_gain.axvline(ac,color = 'k')
+
+            ax_gain.scatter(ac,GainMarg,color = 'k')
+            ax_gain.scatter(ac,Db0,color = 'k')
+            ax_gain.scatter(wc,Db0,color = 'k')
+
+            ax_phase.axvline(wc,color = 'k')
+            ax_phase.axvline(ac,color = 'k')
+
+            ax_phase.scatter(ac,-180,color = 'k')
+            ax_phase.scatter(wc,-180,color = 'k')
+            ax_phase.scatter(wc,phaseMarg,color = 'k')
+
+
+            GainMarg = Db0 - GainMarg 
+            phaseMarg =  phaseMarg + 180
+        
+
+            wcbox = plt.axes([0.9,0.75 , 0.05, 0.03])
+            textWc =  TextBox(wcbox, 'Gain ωc: ', initial=str(round(wc,4)))
+
+            acbox = plt.axes([0.9,0.7 , 0.05, 0.03])
+            textAc =  TextBox(acbox, 'Angle ωc: ', initial=str(round(ac,4)))
+
+            MGbox = plt.axes([0.9,0.65 , 0.05, 0.03])
+            textMG =  TextBox(MGbox, 'Marge de gain [Db]: ', initial=str(round(GainMarg,4)))
+
+            AGbox = plt.axes([0.9,0.6 , 0.05, 0.03])
+            textAG =  TextBox(AGbox, 'Marge de Phase [deg °]: ', initial=str(round(phaseMarg,4)))
+
         varbox = plt.axes([0.9,0.8 , 0.05, 0.03])
-        textWc =  TextBox(varbox, 'Courbe: ', initial='P(s)')
-
-        wcbox = plt.axes([0.9,0.75 , 0.05, 0.03])
-        textWc =  TextBox(wcbox, 'Gain ωc: ', initial=str(round(wc,4)))
-
-        acbox = plt.axes([0.9,0.7 , 0.05, 0.03])
-        textAc =  TextBox(acbox, 'Angle ωc: ', initial=str(round(ac,4)))
-
-        MGbox = plt.axes([0.9,0.65 , 0.05, 0.03])
-        textMG =  TextBox(MGbox, 'Marge de gain [Db]: ', initial=str(round(GainMarg,4)))
-
-        AGbox = plt.axes([0.9,0.6 , 0.05, 0.03])
-        textAG =  TextBox(AGbox, 'Marge de Phase [deg °]: ', initial=str(round(phaseMarg,4)))
+        textVar =  TextBox(varbox, 'Courbe: ', initial=type)
 
         namebox = plt.axes([0.83, 0.15, 0.1, 0.04])
-        self.text_box = TextBox(namebox,  'Name ', initial='')
+        self.text_boxMargin = TextBox(namebox,  'Name ', initial=name)
 
         saveax = plt.axes([0.93, 0.15, 0.05, 0.04]) #4-tuple of floats *rect* = [left, bottom, width, height]
         button_save = Button(saveax, 'Save', hovercolor='0.975')
@@ -700,4 +745,3 @@ class Graph:
         
         plt.get_current_fig_manager().full_screen_toggle()
         plt.show()
-

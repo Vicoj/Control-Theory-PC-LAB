@@ -22,26 +22,27 @@ from package_Class import Simulation,Path,FirstOrder,SecondOrderPlusDelay,LeadLa
 
 
 #Simulation Instance
-SIM = Simulation(2000,1,30,True)
+SIM = Simulation(2000,1,26,True,'RESP_TO_DV_FF_AUTOM')
 
 # Graph Instance
 G = Graph(SIM,'PID Control')
 
 # Path
-SP = Path(SIM,{0: 50, SIM.TSim: 60})
-DV = Path(SIM,{0: 50,900 : 70, SIM.TSim: 60})
-MAN = Path(SIM,{0: 1, SIM.TSim: 0})
-MANV = Path(SIM,{0: 50, SIM.TSim: 80})
+SP = Path(SIM,{0: 50, SIM.TSim: 50})
+DV = Path(SIM,{0: 50, 800 : 40, 1400 : 60, SIM.TSim: 60})
+MAN = Path(SIM,{0: 0, SIM.TSim: 0})
+MANV = Path(SIM,{0: 50, SIM.TSim: 50})
+
 
 # FO Process
-P = FirstOrder(SIM,1.6522434279003099,245.9823790885576,0.649693920059717,50,SIM.PVInit)
+P = FirstOrder(SIM,0.6522434279003099,245.9823790885576,0.649693920059717,50,SIM.PVInit)
 D = FirstOrder(SIM,0.6156105636473335,387.0591022229922, 5.419428855220769,50,0)
 
 # Feed Forward
-FF = FeedForward(SIM,P,D,False)
 
-#PID
-PID = PID_Controller(SIM,1.69,141,5,2,0,100,True,False)
+FF = FeedForward(SIM,P,D,True)
+PID = PID_Controller(SIM,1.69,141,5,2,0,100,False,True)
+
 PID.IMC_tuning(P,0.4,'H')
 
 
@@ -100,7 +101,9 @@ if(SIM.sim == False):
             delta = time.time() - last
     LAB.close()
         
-
+SigValsBin = [
+    Signal(MAN.Signal,'Manual Mode','-g')
+]
 SigVals1 = [
     Signal(SP.Signal,'SP','-r'),
     Signal(SIM.PV,'PV','-b'),
@@ -118,10 +121,16 @@ SigVals2 = [
     #Signal(PID.MVI,'MVI',':y'),
     #Signal(PID.MVD,'MVD',':m'),
     #Signal(DV.Signal,'DV','-k'),
-
 ]
-SigValsBin = [
-    Signal(MAN.Signal,'Manual Mode','-g')
+SigSave = [
+    Signal(SIM.MV,'MV','-b'),
+    Signal(PID.MVP,'MVP',':b'),
+    Signal(PID.MVI,'MVI',':y'),
+    Signal(PID.MVD,'MVD',':m'),
+    Signal(SP.Signal,'SP',':m'),
+    Signal(SIM.PV,'PV',':m'),
+    Signal(DV.Signal,'DV','-k'),
+    Signal(MAN.Signal,'Man','-k'),
 ]
 varVals = [
     Variable(SIM.TSim,'Temps Sim [s]'),
@@ -132,7 +141,7 @@ varVals = [
     Variable(PID.ManFF,'Man FF'),
 
 
-    Variable(PID.Kc,'Kc PID('),
+    Variable(PID.Kc,'Kc PID'),
     Variable(PID.Td,'Td PID'),
     Variable(PID.Ti,'Ti PID'),
     Variable(PID.gamma,'Gamma IMC'),
@@ -145,5 +154,6 @@ varVals = [
 
 ]
 
-#G.show([SigVals1,SigVals2],SigValsBin,varVals)
+G.show([SigVals1,SigVals2,SigSave],SigValsBin,varVals)
 G.Bode(P,PID,'PID')
+G.Bode(P,PID,'P')
