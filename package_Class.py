@@ -435,10 +435,11 @@ class Variable:
         self.name = name
 
 class Graph:
-    def __init__(self,S:Simulation,title):
+    def __init__(self,S:Simulation,title:str()):
 
-        self.title = title
         self.S = S
+        self.title = title + self.S.name
+        
         
 
     def show(self,signals:list(),binSignals:list(),varVals:list()):
