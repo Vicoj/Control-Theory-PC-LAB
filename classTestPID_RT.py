@@ -22,7 +22,7 @@ from package_Class import Simulation,Path,FirstOrder,SecondOrderPlusDelay,LeadLa
 
 
 #Simulation Instance
-SIM = Simulation(2000,1,26,False,'EXP_RESP_TO_DV_NO_FF_AUTOM')
+SIM = Simulation(2000,1,26,False,'EXP_RESP_TO_DV_FF_AUTOM_2')
 
 # Graph Instance
 G = Graph(SIM,'PID Control_')
@@ -40,8 +40,8 @@ D = FirstOrder(SIM,0.6156105636473335,387.0591022229922, 5.419428855220769,50,0)
 
 # Feed Forward
 
-FF = FeedForward(SIM,P,D,False)
-PID = PID_Controller(SIM,1.69,141,5,2,0,100,False,False)
+FF = FeedForward(SIM,P,D,True)
+PID = PID_Controller(SIM,1.69,141,5,2,0,100,False,True)
 PID.IMC_tuning(P,0.4,'H')
 
 
@@ -119,9 +119,9 @@ SigVals2 = [
     #Signal(FF.MVFF,'MVFF','-g'),
     #Signal(PID.MVFB,'MVFB','-y'),
     #Signal(PID.E,'E',':r'),
-    #Signal(PID.MVP,'MVP',':b'),
-    #Signal(PID.MVI,'MVI',':y'),
-    #Signal(PID.MVD,'MVD',':m'),
+    Signal(PID.MVP,'MVP',':g'),
+    Signal(PID.MVI,'MVI',':y'),
+    Signal(PID.MVD,'MVD',':m'),
     #Signal(DV.Signal,'DV','-k'),
 ]
 SigSave = [
