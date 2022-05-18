@@ -22,10 +22,10 @@ from package_Class import Simulation,Path,FirstOrder,SecondOrderPlusDelay,LeadLa
 
 
 #Simulation Instance
-SIM = Simulation(2000,1,26,True,'RESP_TO_DV_FF_AUTOM')
+SIM = Simulation(2000,1,26,False,'EXP_STEP_AUTO')
 
 # Graph Instance
-G = Graph(SIM,'PID Control')
+G = Graph(SIM,'PD_Control_')
 
 # Path
 SP = Path(SIM,{0: 50, 1000 : 60, SIM.TSim: 50})
@@ -125,7 +125,6 @@ SigVals2 = [
 SigSave = [
     Signal(SIM.MV,'MV','-b'),
     Signal(PD.MVP,'MVP',':b'),
-    Signal(PD.MVI,'MVI',':y'),
     Signal(PD.MVD,'MVD',':m'),
     Signal(SP.Signal,'SP',':m'),
     Signal(SIM.PV,'PV',':m'),

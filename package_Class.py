@@ -51,8 +51,6 @@ class Simulation:
         self.MV.append(MVFB[-1]+MVFF[-1])
         return None
 
-
-
 class Path:
     """
         The function "SelectPath_RT" needs to be included in a "for or while loop".
@@ -532,8 +530,7 @@ class Graph:
         else:
             self.fig.savefig("Output/EXP/PID_Graph_"+self.text_box.text+ '_' + date_time)
             nameFile = 'Data/EXP/PID_Graph_' + self.text_box.text + '_' + date_time + '.txt'
-        
-        nameFile = 'Data/EXP/PID_Graph_' + self.text_box.text + '_' + date_time + '.txt'
+
         if not os.path.exists('Data'):
             os.makedirs('Data')
         if not os.path.exists('Data/SIM'):
