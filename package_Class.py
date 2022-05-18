@@ -54,6 +54,16 @@ class Simulation:
 
 
 class Path:
+    """
+        The function "SelectPath_RT" needs to be included in a "for or while loop".
+
+        :path: dictionary input describing a path in time. Example: path = {0: 0, 5: 1, 50: 2, 80: 3, 100: 3}
+        :time: time vector.
+        :signal: signal vector that is being constructed using the input "path" and the vector "time".
+
+        The function "SelectPath_RT" takes the last element in the vector "time" and, given the input "path", it appends the correct value to the vector "signal".
+    """    
+    
     def __init__(self,S:Simulation,path):
         self.S = S
         self.path = path
@@ -69,7 +79,7 @@ class Path:
         :signal: signal vector that is being constructed using the input "path" and the vector "time".
 
         The function "SelectPath_RT" takes the last element in the vector "time" and, given the input "path", it appends the correct value to the vector "signal".
-        """    
+    """  
 
         for timeKey in self.path:
             if(time[-1] >= timeKey):
@@ -248,6 +258,7 @@ class FeedForward:
             self.MVFF.append(0)
 
 class PID_Controller:
+
     def __init__(self,S:Simulation,Kc,Ti,Td,alpha,MVMin,MVMax,OLP,ManFF:bool):
         
         self.S = S

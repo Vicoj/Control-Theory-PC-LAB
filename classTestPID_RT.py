@@ -22,16 +22,16 @@ from package_Class import Simulation,Path,FirstOrder,SecondOrderPlusDelay,LeadLa
 
 
 #Simulation Instance
-SIM = Simulation(2000,1,26,False,'EXP_CLOSED_LOOP_SP_STEP')
+SIM = Simulation(2000,1,26,False,'EXP_RESP_TO_DV_NO_FF_AUTOM')
 
 # Graph Instance
 G = Graph(SIM,'PID Control_')
 
 # Path
-SP = Path(SIM,{0: 50, 1000: 60, SIM.TSim: 60})
-DV = Path(SIM,{0: 50, SIM.TSim: 50})
+SP = Path(SIM,{0: 50, SIM.TSim: 50})
+DV = Path(SIM,{0: 50, 800 : 40, 1400 : 60, SIM.TSim: 60})
 MAN = Path(SIM,{0: 0, SIM.TSim: 0})
-MANV = Path(SIM,{0: 0, SIM.TSim: 0})
+MANV = Path(SIM,{0: 50, SIM.TSim: 50})
 
 
 # FO Process
@@ -42,8 +42,8 @@ D = FirstOrder(SIM,0.6156105636473335,387.0591022229922, 5.419428855220769,50,0)
 
 FF = FeedForward(SIM,P,D,False)
 PID = PID_Controller(SIM,1.69,141,5,2,0,100,False,False)
-
 PID.IMC_tuning(P,0.4,'H')
+
 
 
 if(SIM.sim == True):
@@ -65,6 +65,8 @@ if(SIM.sim == True):
         D.RT(DV.Signal,'EBD')
         SIM.PV.append(P.PV[-1]+D.PV[-1]) # Point Value
         SIM.updateBar()
+
+    
 
 if(SIM.sim == False):
     #Tc Lab
