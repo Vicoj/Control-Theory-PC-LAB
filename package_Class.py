@@ -782,3 +782,109 @@ class Graph:
         
         plt.get_current_fig_manager().full_screen_toggle()
         plt.show()
+
+class PD_Controller:
+    def __init__(self,S:Simulation,Kc,Ti,Td,alpha,MVMin,MVMax,OLP,ManFF:bool):
+        
+        self.S = S
+        self.Kc = Kc
+        self.Ti = Ti
+        self.Td = Td
+        self.alpha = alpha
+        self.MVMin = MVMin
+        self.MVMax = MVMax
+        self.OLP = OLP
+        self.ManFF = ManFF
+        self.gamma = 0
+        self.case = ''
+
+        self.MVMan = []
+
+        self.MVFB = []
+        self.MVP = []
+        self.MVI = []
+        self.MVD = []
+        self.E = []
+
+    def IMC_tuning(self,P:FirstOrder, gamma, case:str()):
+    #theta process
+    #Kp gain process
+    #T1p = time constant process
+    #gamma for desired closed loop time constant
+        self.gamma = gamma
+        self.case = case
+
+        Tc = gamma*P.T # 0.2 <gamma< 0.9
+
+        if case == "G" :
+            self.Kc = P.T/(P.K*Tc+P.Theta)
+            self.Ti = P.T+P.Theta/2
+            self.Td = 0
+        if case == "H" :
+            self.Kc = (P.T+P.Theta/2)/(P.K*Tc+P.Theta/2)
+            self.Ti = P.T+P.Theta/2
+            self.Td = (P.T*P.Theta)/(2*Tc+P.Theta)
+
+
+        
+
+    def RT(self,SP,PV,MAN,MVMan,MVFF,method="EBD"):
+        """
+        The function "PID.RT" needs to be included in a "for or while loop".
+        
+        SP : Set Point
+        PV : Processed Value
+        MAN : Manual mode ON/OFF
+        MVMan : Modified value set with Manual mode
+        MVFF : Modified value calculated by the Feed Forward
+        method : discretisation method (optional: default value is 'EBD')
+        
+        The function "PID.RT" appends a value to the following vectors :
+        E, MVp, MVi, MVd, MVFB
+        The appened values correspond to the values computed by a parallel PID controller.
+        If MAN is OFF then the modified value is bounded by MVmin and MVmax. The MVi value is overwritten in order to respect the boundaries.
+        If MAN is ON then the modified value is equal to MVMan. The MVi value is overwritten in order to avoid integrator wind-up.
+        """
+    #calcul de l'erreur SP-PV
+    
+        if(not self.OLP):
+            if(len(PV)==0):
+                self.E.append(SP[-1]-self.S.PVInit)
+            else :
+                self.E.append(SP[-1]-PV[-1])
+        else:
+            self.E.append(SP[-1])
+
+        #calcul de MVp
+
+        self.MVP.append(self.Kc*self.E[-1])
+
+        #calcul MVd
+
+        Tfd = self.alpha*self.Td
+        if(self.Td>0):
+            if(len(self.MVD)!=0):
+                if(len(self.E)==1):
+                    self.MVD.append((Tfd/(Tfd+self.S.Ts))*self.MVD[-1] + ((self.Kc*self.Td)/(Tfd+self.S.Ts))*(self.E[-1]))
+                else:
+                    self.MVD.append(( Tfd / (Tfd+self.S.Ts) )*self.MVD[-1] + ( (self.Kc*self.Td) / (Tfd+self.S.Ts) ) *(self.E[-1]-self.E[-2]))
+            else :
+                self.MVD.append(self.S.PVInit)
+
+        #mode automatique
+        if(not MAN[-1]):
+            #saturation
+            if(self.MVP[-1]+self.MVD[-1] + MVFF[-1] < self.MVMin) :
+                self.MVFB.append(self.MVMin-MVFF[-1])
+            
+            elif (self.MVP[-1]+self.MVD[-1] + MVFF[-1]>=self.MVMax) :
+                self.MVFB.append(self.MVMax -MVFF[-1])
+            else :
+                self.MVFB.append(self.MVP[-1]+self.MVD[-1])
+
+        #mode manuel
+        else :
+            if(not self.ManFF):
+                self.MVFB.append(MVMan[-1]-MVFF[-1])
+            else:
+                self.MVFB.append(MVMan[-1])
