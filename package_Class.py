@@ -507,7 +507,7 @@ class Graph:
     def saveFig(self,event):
         now = datetime.now()
         date_time = now.strftime("%Y-%m-%d-%Hh%M")
-        self.fig.savefig("Output/Margin_Graph_"+self.text_boxMargin.text+ '_' + date_time)
+        self.fig.savefig("Output/Bode/Margin_Graph_"+self.text_boxMargin.text+ '_' + date_time)
 
     def save(self,event):
 
@@ -526,8 +526,11 @@ class Graph:
         my_data = np.vstack((data))
         my_data = my_data.T
 
-        self.fig.savefig("Output/PID_Graph_"+self.text_box.text+ '_' + date_time)
-        nameFile = 'Data/PID_Graph_' + self.text_box.text + '_' + date_time + '.txt'
+        if (self.S.sim):
+            self.fig.savefig("Output/SIM/PID_Graph_"+self.text_box.text+ '_' + date_time)
+        else:
+            nameFile = 'Data/EXP/PID_Graph_' + self.text_box.text + '_' + date_time + '.txt'
+
         if not os.path.exists('Data'):
             os.makedirs('Data')
         np.savetxt(nameFile,my_data,delimiter=',',header=data_names,comments='')
