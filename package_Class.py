@@ -528,11 +528,18 @@ class Graph:
 
         if (self.S.sim):
             self.fig.savefig("Output/SIM/PID_Graph_"+self.text_box.text+ '_' + date_time)
+            nameFile = 'Data/SIM/PID_Graph_' + self.text_box.text + '_' + date_time + '.txt'
         else:
+            self.fig.savefig("Output/EXP/PID_Graph_"+self.text_box.text+ '_' + date_time)
             nameFile = 'Data/EXP/PID_Graph_' + self.text_box.text + '_' + date_time + '.txt'
-
+        
+        nameFile = 'Data/EXP/PID_Graph_' + self.text_box.text + '_' + date_time + '.txt'
         if not os.path.exists('Data'):
             os.makedirs('Data')
+        if not os.path.exists('Data/SIM'):
+            os.makedirs('Data/SIM')
+        if not os.path.exists('Data/EXP'):
+            os.makedirs('Data/EXP')
         np.savetxt(nameFile,my_data,delimiter=',',header=data_names,comments='')
                    
     def close(self,event):
