@@ -233,7 +233,7 @@ class FeedForward:
         self.LL2 = LeadLag(S,KFF2,self.T2p,self.T2d)
 
     def RT(self,DV):
-
+        
         #Dephasage
         PVFF = DV-self.DV0*np.ones_like(DV)
         self.delayFF.RT(PVFF) 
@@ -292,8 +292,23 @@ class PID_Controller:
 
         
 
-    def RT(self,SP,PV,MAN,MVMan,MVFF,method):
+    def RT(self,SP,PV,MAN,MVMan,MVFF,method="EBD"):
+        """
+        The function "PID.RT" needs to be included in a "for or while loop".
         
+        SP : Set Point
+        PV : Processed Value
+        MAN : Manual mode ON/OFF
+        MVMan : Modified value set with Manual mode
+        MVFF : Modified value calculated by the Feed Forward
+        method : discretisation method (optional: default value is 'EBD')
+        
+        The function "PID.RT" appends a value to the following vectors :
+        E, MVp, MVi, MVd, MVFB
+        The appened values correspond to the values computed by a parallel PID controller.
+        If MAN is OFF then the modified value is bounded by MVmin and MVmax. The MVi value is overwritten in order to respect the boundaries.
+        If MAN is ON then the modified value is equal to MVMan. The MVi value is overwritten in order to avoid integrator wind-up.
+        """
     #calcul de l'erreur SP-PV
     
         if(not self.OLP):
@@ -367,7 +382,7 @@ class Delay:
         :MVInit: (optional: default value is 0)
 
         The function "Delay_RT" appends a value to the vector "MV_Delay".
-        The appended value corresponds to the value in the vector "MV" "theta" seconds ago.
+        The appened value corresponds to the value in the vector "MV" "theta" seconds ago.
         If "theta" is not a multiple of "Ts", "theta" is replaced by Ts*int(np.ceil(theta/Ts)), i.e. the closest multiple of "Ts" larger than "theta".
         If the value of the vector "input" "theta" seconds ago is not defined, the value "MVInit" is used.
         """
@@ -410,9 +425,9 @@ class Variable:
 
 class Graph:
     def __init__(self,S:Simulation,title):
+
+        self.title = title
         self.S = S
-        self.title = title + self.S.name
-        
         
 
     def show(self,signals:list(),binSignals:list(),varVals:list()):
